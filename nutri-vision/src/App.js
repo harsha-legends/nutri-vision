@@ -1,24 +1,64 @@
-import logo from './logo.svg';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { CssBaseline } from '@mui/material';
+import { AuthProvider } from './context/AuthContext';
+import { MealsProvider } from './context/MealsContext';
+import { ThemeProvider } from './context/ThemeContext';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import MainLayout from './components/Layout/MainLayout';
+import Login from './pages/Auth/Login';
+import Signup from './pages/Auth/Signup';
+import Dashboard from './pages/Dashboard/Dashboard';
+import FoodCategory from './pages/FoodCategory/FoodCategory';
+import FoodDetails from './pages/FoodDetails/FoodDetails';
+import Profile from './pages/Profile/Profile';
+import Goals from './pages/Goals/Goals';
+import TodaysMeals from './pages/TodaysMeals/TodaysMeals';
+import Analytics from './pages/Analytics/Analytics';
+import AIChat from './pages/AIChat/AIChat';
+import QRCodePage from './pages/QRCode/QRCode';
 import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider>
+      <CssBaseline />
+      <AuthProvider>
+        <MealsProvider>
+          <Router>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+
+              {/* Protected Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="category/:categoryId" element={<FoodCategory />} />
+                <Route path="food/:foodId" element={<FoodDetails />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="goals" element={<Goals />} />
+                <Route path="todays-meals" element={<TodaysMeals />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="ai-chat" element={<AIChat />} />
+                <Route path="qr-code" element={<QRCodePage />} />
+              </Route>
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Router>
+        </MealsProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

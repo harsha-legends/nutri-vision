@@ -17,6 +17,7 @@ import TodaysMeals from './pages/TodaysMeals/TodaysMeals';
 import Analytics from './pages/Analytics/Analytics';
 import AIChat from './pages/AIChat/AIChat';
 import QRCodePage from './pages/QRCode/QRCode';
+import FoodScanner from './pages/FoodScanner/FoodScanner';
 import './App.css';
 
 function App() {
@@ -50,6 +51,7 @@ function App() {
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="ai-chat" element={<AIChat />} />
                 <Route path="qr-code" element={<QRCodePage />} />
+                <Route path="scan-food" element={<FoodScanner />} />
               </Route>
 
               {/* Fallback */}

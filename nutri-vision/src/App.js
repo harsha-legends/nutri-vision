@@ -43,7 +43,7 @@ function App() {
               >
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
-                <Route path="category/:categoryId" element={<FoodCategory />} />
+                <Route path="food-category/:categoryId" element={<FoodCategory />} />
                 <Route path="food/:foodId" element={<FoodDetails />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="goals" element={<Goals />} />

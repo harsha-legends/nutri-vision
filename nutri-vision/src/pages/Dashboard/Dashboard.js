@@ -134,7 +134,7 @@ const Dashboard = () => {
                   }}
                 >
                   <CardActionArea
-                    onClick={() => navigate(`/category/${category.id}`)}
+                    onClick={() => navigate(`/food-category/${category.id}`)}
                     sx={{ height: '100%', p: 2 }}
                   >
                     <CardContent sx={{ textAlign: 'center' }}>

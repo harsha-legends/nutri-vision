@@ -301,21 +301,48 @@ Feel free to ask me anything about nutrition, and I'll do my best to help! What 
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const userInput = input;
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI thinking time
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+    try {
+      // Call the backend AI API
+      const response = await fetch('http://localhost:5000/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userInput,
+          conversationHistory: messages.slice(-10), // Send last 10 messages for context
+        }),
+      });
 
-    const botResponse = {
-      id: Date.now() + 1,
-      type: 'bot',
-      text: generateBotResponse(input),
-      timestamp: new Date(),
-    };
+      const data = await response.json();
 
-    setIsTyping(false);
-    setMessages(prev => [...prev, botResponse]);
+      const botResponse = {
+        id: Date.now() + 1,
+        type: 'bot',
+        text: data.success ? data.data.message : 'Sorry, I had trouble processing that. Please try again!',
+        timestamp: new Date(),
+      };
+
+      setIsTyping(false);
+      setMessages(prev => [...prev, botResponse]);
+    } catch (error) {
+      console.error('AI Chat Error:', error);
+      
+      // Fallback to local response if API fails
+      const botResponse = {
+        id: Date.now() + 1,
+        type: 'bot',
+        text: generateBotResponse(userInput),
+        timestamp: new Date(),
+      };
+
+      setIsTyping(false);
+      setMessages(prev => [...prev, botResponse]);
+    }
   };
 
   const handleKeyPress = (e) => {

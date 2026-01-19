@@ -36,7 +36,10 @@ const FoodDetails = () => {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5">Food not found</Typography>
-        <Button onClick={() => navigate('/dashboard')}>Go Back</Button>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          Food with ID "{foodId}" was not found in the database.
+        </Typography>
+        <Button onClick={() => navigate(-1)} sx={{ mt: 2 }}>Go Back</Button>
       </Box>
     );
   }
@@ -44,41 +47,68 @@ const FoodDetails = () => {
   const category = foodCategories[food.category];
   const { nutrition, healthImpact } = food;
 
+  // Handle both old and new healthImpact formats
+  const safeHealthImpact = typeof healthImpact === 'string' 
+    ? { 
+        riskLevel: healthImpact.toLowerCase(),
+        bloodSugar: 'low',
+        bloodPressure: 'low'
+      }
+    : healthImpact;
+
   const macroData = [
     { name: 'Protein', value: nutrition.protein, color: chartColors.protein },
     { name: 'Carbs', value: nutrition.carbs, color: chartColors.carbs },
     { name: 'Fats', value: nutrition.fats, color: chartColors.fats },
   ];
 
-  const vitaminData = Object.entries(nutrition.vitamins).map(([key, value]) => ({
-    name: `Vitamin ${key.toUpperCase()}`,
-    value,
-  }));
+  // Safe handling of vitamins data with fallback
+  const vitaminData = nutrition.vitamins 
+    ? Object.entries(nutrition.vitamins).map(([key, value]) => ({
+        name: `Vitamin ${key.toUpperCase()}`,
+        value,
+      }))
+    : [];
 
-  const mineralData = Object.entries(nutrition.minerals).map(([key, value]) => ({
-    name: key.charAt(0).toUpperCase() + key.slice(1),
-    value,
-  }));
+  // Safe handling of minerals data with fallback
+  const mineralData = nutrition.minerals
+    ? Object.entries(nutrition.minerals).map(([key, value]) => ({
+        name: key.charAt(0).toUpperCase() + key.slice(1),
+        value,
+      }))
+    : [];
 
   const getImpactIcon = (level) => {
-    switch (level) {
+    const normalizedLevel = level?.toLowerCase();
+    switch (normalizedLevel) {
       case 'low':
+      case 'excellent':
+      case 'good':
         return <CheckCircle sx={{ color: 'success.main' }} />;
       case 'medium':
+      case 'moderate':
         return <Warning sx={{ color: 'warning.main' }} />;
       case 'high':
         return <Error sx={{ color: 'error.main' }} />;
       default:
-        return null;
+        return <CheckCircle sx={{ color: 'success.main' }} />;
     }
   };
 
   const getImpactColor = (level) => {
-    switch (level) {
-      case 'low': return 'success';
-      case 'medium': return 'warning';
-      case 'high': return 'error';
-      default: return 'default';
+    const normalizedLevel = level?.toLowerCase();
+    switch (normalizedLevel) {
+      case 'low': 
+      case 'excellent':
+      case 'good':
+        return 'success';
+      case 'medium': 
+      case 'moderate':
+        return 'warning';
+      case 'high': 
+        return 'error';
+      default: 
+        return 'success';
     }
   };
 
@@ -214,24 +244,24 @@ const FoodDetails = () => {
                 <Box sx={{ space: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {getImpactIcon(healthImpact.bloodSugar)}
+                      {getImpactIcon(safeHealthImpact.bloodSugar)}
                       <Typography>Blood Sugar Impact</Typography>
                     </Box>
                     <Chip
                       size="small"
-                      label={healthImpact.bloodSugar.toUpperCase()}
-                      color={getImpactColor(healthImpact.bloodSugar)}
+                      label={safeHealthImpact.bloodSugar.toUpperCase()}
+                      color={getImpactColor(safeHealthImpact.bloodSugar)}
                     />
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {getImpactIcon(healthImpact.bloodPressure)}
+                      {getImpactIcon(safeHealthImpact.bloodPressure)}
                       <Typography>Blood Pressure Impact</Typography>
                     </Box>
                     <Chip
                       size="small"
-                      label={healthImpact.bloodPressure.toUpperCase()}
-                      color={getImpactColor(healthImpact.bloodPressure)}
+                      label={safeHealthImpact.bloodPressure.toUpperCase()}
+                      color={getImpactColor(safeHealthImpact.bloodPressure)}
                     />
                   </Box>
                   <Divider sx={{ my: 2 }} />
@@ -240,8 +270,8 @@ const FoodDetails = () => {
                       Overall Risk Level
                     </Typography>
                     <Chip
-                      label={healthImpact.riskLevel.toUpperCase()}
-                      color={getImpactColor(healthImpact.riskLevel)}
+                      label={safeHealthImpact.riskLevel.toUpperCase()}
+                      color={getImpactColor(safeHealthImpact.riskLevel)}
                       sx={{ fontWeight: 700 }}
                     />
                   </Box>

@@ -286,7 +286,7 @@ const FoodScanner = () => {
                     </Box>
                   </motion.div>
                   
-                  <Stack direction="row" spacing={2}>
+                  <Stack direction="row" spacing={2} justifyContent="center" alignItems="center">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <Button
                         variant="contained"
@@ -373,7 +373,8 @@ const FoodScanner = () => {
                     p: 3,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-around',
+                    justifyContent: 'center',
+                    gap: 4,
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
                   }}
                 >

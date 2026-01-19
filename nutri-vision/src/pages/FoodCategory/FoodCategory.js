@@ -21,6 +21,7 @@ import { ArrowBack, Add, Search, FilterList, ExpandMore, ExpandLess } from '@mui
 import { motion } from 'framer-motion';
 import { foods, foodCategories } from '../../data/foodsData';
 import { vegFoodsDatabase, vegSubCategories } from '../../data/vegFoodsDatabase';
+import { nonVegFoodsDatabase, nonVegSubCategories } from '../../data/nonVegFoodsDatabase';
 import { useMeals } from '../../context/MealsContext';
 
 const FoodCategory = () => {
@@ -36,10 +37,15 @@ const FoodCategory = () => {
   
   const category = foodCategories[categoryId];
   const categoryFoods = useMemo(() => {
-    // Use the new comprehensive veg database for veg category
+    // Use the new comprehensive databases for specific categories
     if (categoryId === 'veg') {
       console.log(`Loading foods for veg category: ${vegFoodsDatabase.length} items from vegFoodsDatabase`);
       return vegFoodsDatabase;
+    }
+    
+    if (categoryId === 'nonVeg') {
+      console.log(`Loading foods for non-veg category: ${nonVegFoodsDatabase.length} items from nonVegFoodsDatabase`);
+      return nonVegFoodsDatabase;
     }
     
     const foodData = foods[categoryId] || [];
@@ -48,6 +54,7 @@ const FoodCategory = () => {
     return foodData;
   }, [categoryId]);
   const isVegCategory = categoryId === 'veg';
+  const isNonVegCategory = categoryId === 'nonVeg';
 
   // Filter foods based on search and subcategory
   const filteredFoods = useMemo(() => {
@@ -60,7 +67,7 @@ const FoodCategory = () => {
     let result = [...categoryFoods]; // Create a copy to avoid mutations
     
     // Filter by subcategory first (faster)
-    if (isVegCategory && selectedSubCategory !== 'all') {
+    if ((isVegCategory || isNonVegCategory) && selectedSubCategory !== 'all') {
       result = result.filter(food => {
         const hasSubCategory = food.subCategory === selectedSubCategory;
         return hasSubCategory;
@@ -85,23 +92,26 @@ const FoodCategory = () => {
     }
     
     return result;
-  }, [categoryFoods, selectedSubCategory, searchQuery, isVegCategory]);
+  }, [categoryFoods, selectedSubCategory, searchQuery, isVegCategory, isNonVegCategory]);
 
   // Get available subcategories for this category
   const availableSubCategories = useMemo(() => {
-    if (!isVegCategory) return [];
+    if (!isVegCategory && !isNonVegCategory) return [];
     const subCats = [...new Set(categoryFoods.map(food => food.subCategory).filter(Boolean))];
     console.log('Available subcategories:', subCats);
     return subCats;
-  }, [categoryFoods, isVegCategory]);
+  }, [categoryFoods, isVegCategory, isNonVegCategory]);
 
-  // Fallback vegSubCategories if not available
-  const subCategoriesData = vegSubCategories || {
-    starter: { name: 'Starters', icon: '🥟' },
-    curry: { name: 'Curries', icon: '🍛' }, 
-    south: { name: 'South Indian', icon: '🥞' },
-    bread: { name: 'Breads', icon: '🫓' }
-  };
+  // Get subcategories data based on category
+  const subCategoriesData = useMemo(() => {
+    if (isVegCategory) {
+      return vegSubCategories || {};
+    }
+    if (isNonVegCategory) {
+      return nonVegSubCategories || {};
+    }
+    return {};
+  }, [isVegCategory, isNonVegCategory]);
 
   // Handle subcategory change with immediate feedback
   const handleSubCategoryChange = (event, newValue) => {
@@ -185,16 +195,17 @@ const FoodCategory = () => {
             </Box>
           </Box>
 
-          {/* Legend - Only show for Veg Category */}
-          {isVegCategory && (
+          {/* Interactive Category Legend - Show for Veg and Non-Veg Categories */}
+          {(isVegCategory || isNonVegCategory) && (
             <Paper 
-              elevation={3} 
+              elevation={3}
               sx={{ 
                 p: 2, 
-                borderRadius: 3,
-                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-                border: '1px solid rgba(34, 197, 94, 0.2)',
-                minWidth: 320
+                borderRadius: 3, 
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                border: '2px solid rgba(34, 197, 94, 0.2)',
+                maxWidth: 400,
+                boxShadow: '0 8px 32px rgba(34, 197, 94, 0.1)'
               }}
             >
               <Typography 
@@ -202,199 +213,41 @@ const FoodCategory = () => {
                 fontWeight={700} 
                 sx={{ 
                   mb: 1.5, 
-                  color: 'rgb(34, 197, 94)',
+                  color: isVegCategory ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)',
                   textAlign: 'center'
                 }}
               >
                 🎨 Click to Filter by Category
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>🥞</span>}
-                  label="Tiffin"
-                  size="small"
-                  clickable
-                  onClick={() => {
-                    setSelectedSubCategory('tiffins');
-                    setIsFiltering(true);
-                    setTimeout(() => setIsFiltering(false), 100);
-                  }}
-                  sx={{
-                    backgroundColor: selectedSubCategory === 'tiffins' ? '#fef3c7' : 'rgba(254, 243, 199, 0.5)',
-                    color: '#92400e',
-                    fontWeight: selectedSubCategory === 'tiffins' ? 700 : 600,
-                    border: selectedSubCategory === 'tiffins' ? '2px solid #92400e' : '1px solid #92400e',
-                    '& .MuiChip-icon': { color: '#92400e' },
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#fef3c7',
-                      transform: 'scale(1.05)',
-                      boxShadow: '0 2px 8px rgba(146, 64, 14, 0.3)'
-                    }
-                  }}
-                />
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>🍛</span>}
-                  label="Curry"
-                  size="small"
-                  clickable
-                  onClick={() => {
-                    setSelectedSubCategory('curry');
-                    setIsFiltering(true);
-                    setTimeout(() => setIsFiltering(false), 100);
-                  }}
-                  sx={{
-                    backgroundColor: selectedSubCategory === 'curry' ? '#fecaca' : 'rgba(254, 202, 202, 0.5)',
-                    color: '#991b1b',
-                    fontWeight: selectedSubCategory === 'curry' ? 700 : 600,
-                    border: selectedSubCategory === 'curry' ? '2px solid #991b1b' : '1px solid #991b1b',
-                    '& .MuiChip-icon': { color: '#991b1b' },
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#fecaca',
-                      transform: 'scale(1.05)',
-                      boxShadow: '0 2px 8px rgba(153, 27, 27, 0.3)'
-                    }
-                  }}
-                />
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>🍛</span>}
-                  label="Tiffin Curries"
-                  size="small"
-                  clickable
-                  onClick={() => {
-                    setSelectedSubCategory('tiffinCurries');
-                    setIsFiltering(true);
-                    setTimeout(() => setIsFiltering(false), 100);
-                  }}
-                  sx={{
-                    backgroundColor: selectedSubCategory === 'tiffinCurries' ? '#fed7d7' : 'rgba(254, 215, 215, 0.5)',
-                    color: '#c53030',
-                    fontWeight: selectedSubCategory === 'tiffinCurries' ? 700 : 600,
-                    border: selectedSubCategory === 'tiffinCurries' ? '2px solid #c53030' : '1px solid #c53030',
-                    '& .MuiChip-icon': { color: '#c53030' },
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#fed7d7',
-                      transform: 'scale(1.05)',
-                      boxShadow: '0 2px 8px rgba(197, 48, 48, 0.3)'
-                    }
-                  }}
-                />
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>🫓</span>}
-                  label="Bread"
-                  size="small"
-                  clickable
-                  onClick={() => {
-                    setSelectedSubCategory('bread');
-                    setIsFiltering(true);
-                    setTimeout(() => setIsFiltering(false), 100);
-                  }}
-                  sx={{
-                    backgroundColor: selectedSubCategory === 'bread' ? '#ddd6fe' : 'rgba(221, 214, 254, 0.5)',
-                    color: '#6b21a8',
-                    fontWeight: selectedSubCategory === 'bread' ? 700 : 600,
-                    border: selectedSubCategory === 'bread' ? '2px solid #6b21a8' : '1px solid #6b21a8',
-                    '& .MuiChip-icon': { color: '#6b21a8' },
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#ddd6fe',
-                      transform: 'scale(1.05)',
-                      boxShadow: '0 2px 8px rgba(107, 33, 168, 0.3)'
-                    }
-                  }}
-                />
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>🥟</span>}
-                  label="Starter"
-                  size="small"
-                  clickable
-                  onClick={() => {
-                    setSelectedSubCategory('starter');
-                    setIsFiltering(true);
-                    setTimeout(() => setIsFiltering(false), 100);
-                  }}
-                  sx={{
-                    backgroundColor: selectedSubCategory === 'starter' ? '#bbf7d0' : 'rgba(187, 247, 208, 0.5)',
-                    color: '#166534',
-                    fontWeight: selectedSubCategory === 'starter' ? 700 : 600,
-                    border: selectedSubCategory === 'starter' ? '2px solid #166534' : '1px solid #166534',
-                    '& .MuiChip-icon': { color: '#166534' },
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#bbf7d0',
-                      transform: 'scale(1.05)',
-                      boxShadow: '0 2px 8px rgba(22, 101, 52, 0.3)'
-                    }
-                  }}
-                />
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>🍲</span>}
-                  label="Rice"
-                  size="small"
-                  clickable
-                  onClick={() => {
-                    setSelectedSubCategory('rice');
-                    setIsFiltering(true);
-                    setTimeout(() => setIsFiltering(false), 100);
-                  }}
-                  sx={{
-                    backgroundColor: selectedSubCategory === 'rice' ? '#cffafe' : 'rgba(207, 250, 254, 0.5)',
-                    color: '#155e75',
-                    fontWeight: selectedSubCategory === 'rice' ? 700 : 600,
-                    border: selectedSubCategory === 'rice' ? '2px solid #155e75' : '1px solid #155e75',
-                    '& .MuiChip-icon': { color: '#155e75' },
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#cffafe',
-                      transform: 'scale(1.05)',
-                      boxShadow: '0 2px 8px rgba(21, 94, 117, 0.3)'
-                    }
-                  }}
-                />
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>�</span>}
-                  label="Street Food"
-                  size="small"
-                  sx={{
-                    backgroundColor: '#fed7d7',
-                    color: '#c53030',
-                    fontWeight: 600,
-                    '& .MuiChip-icon': { color: '#c53030' }
-                  }}
-                />
-                <Chip
-                  icon={<span style={{ fontSize: '16px' }}>🍰</span>}
-                  label="Sweets"
-                  size="small"
-                  clickable
-                  onClick={() => {
-                    setSelectedSubCategory('dessert');
-                    setIsFiltering(true);
-                    setTimeout(() => setIsFiltering(false), 100);
-                  }}
-                  sx={{
-                    backgroundColor: selectedSubCategory === 'dessert' ? '#fce7f3' : 'rgba(252, 231, 243, 0.5)',
-                    color: '#be185d',
-                    fontWeight: selectedSubCategory === 'dessert' ? 700 : 600,
-                    border: selectedSubCategory === 'dessert' ? '2px solid #be185d' : '1px solid #be185d',
-                    '& .MuiChip-icon': { color: '#be185d' },
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#fce7f3',
-                      transform: 'scale(1.05)',
-                      boxShadow: '0 2px 8px rgba(190, 24, 93, 0.3)'
-                    }
-                  }}
-                />
+                {Object.entries(subCategoriesData).map(([key, data]) => (
+                  <Chip
+                    key={key}
+                    icon={<span style={{ fontSize: '16px' }}>{data.icon}</span>}
+                    label={data.name}
+                    size="small"
+                    clickable
+                    onClick={() => {
+                      setSelectedSubCategory(key);
+                      setIsFiltering(true);
+                      setTimeout(() => setIsFiltering(false), 100);
+                    }}
+                    sx={{
+                      backgroundColor: selectedSubCategory === key ? data.color : `${data.color}80`,
+                      color: data.textColor,
+                      fontWeight: selectedSubCategory === key ? 700 : 600,
+                      border: selectedSubCategory === key ? `2px solid ${data.textColor}` : `1px solid ${data.textColor}`,
+                      '& .MuiChip-icon': { color: data.textColor },
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: data.color,
+                        transform: 'scale(1.05)',
+                        boxShadow: `0 2px 8px ${data.textColor}40`
+                      }
+                    }}
+                  />
+                ))}
               </Box>
               {/* Clear Filter Button */}
               {selectedSubCategory !== 'all' && (
@@ -431,8 +284,8 @@ const FoodCategory = () => {
         </Box>
       </motion.div>
 
-      {/* Search and Filter Section - Only for Veg Category */}
-      {isVegCategory && (
+      {/* Search and Filter Section - Show for Veg and Non-Veg Categories */}
+      {(isVegCategory || isNonVegCategory) && (
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -454,7 +307,7 @@ const FoodCategory = () => {
                 <TextField
                   fullWidth
                   variant="outlined"
-                  placeholder="Search for vegetarian foods..."
+                  placeholder={`Search for ${isVegCategory ? 'vegetarian' : 'non-vegetarian'} foods...`}
                   value={searchQuery}
                   onChange={handleSearchChange}
                   InputProps={{

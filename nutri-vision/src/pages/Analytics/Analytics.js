@@ -134,7 +134,7 @@ const Analytics = () => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={5}>
+              <Grid size={{ xs: 12, md: 5 }}>
                 <TextField
                   fullWidth
                   placeholder="Search nutrition component (e.g., protein, carbs, calories...)"
@@ -154,7 +154,7 @@ const Analytics = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Time Range</InputLabel>
                   <Select
@@ -173,7 +173,7 @@ const Analytics = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <ToggleButtonGroup
                   value={chartType}
                   exclusive
@@ -245,7 +245,7 @@ const Analytics = () => {
             {filteredComponents.map((component, index) => {
               const Icon = component.icon;
               return (
-                <Grid item xs={6} sm={4} md={2} key={component.key}>
+                <Grid size={{ xs: 6, sm: 4, md: 2 }} key={component.key}>
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -551,7 +551,7 @@ const Analytics = () => {
               {filteredComponents.map((component) => {
                 const Icon = component.icon;
                 return (
-                  <Grid item xs={6} sm={4} md={2} key={component.key}>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }} key={component.key}>
                     <Box
                       sx={{
                         p: 2,

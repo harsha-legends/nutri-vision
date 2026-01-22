@@ -175,7 +175,7 @@ const Signup = () => {
 
           <form onSubmit={handleSubmit}>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   name="username"
@@ -194,7 +194,7 @@ const Signup = () => {
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   name="email"
@@ -214,7 +214,7 @@ const Signup = () => {
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   name="password"
@@ -251,7 +251,7 @@ const Signup = () => {
                 </Button>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormControl fullWidth error={!!errors.gender}>
                   <InputLabel>Gender</InputLabel>
                   <Select
@@ -277,7 +277,7 @@ const Signup = () => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   name="weight"
@@ -297,7 +297,7 @@ const Signup = () => {
                 />
               </Grid>
 
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   name="height"
@@ -317,7 +317,7 @@ const Signup = () => {
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     type="submit"

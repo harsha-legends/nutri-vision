@@ -24,6 +24,8 @@ import {
 import { getFoodById, foodCategories } from '../../data/foodsData';
 import { useMeals } from '../../context/MealsContext';
 import { chartColors } from '../../theme/theme';
+import OptimizedImage from '../../components/ui/OptimizedImage';
+import { BorderBeam, ShinyText } from '../../components/ui/MagicUI';
 
 const FoodDetails = () => {
   const { foodId } = useParams();
@@ -122,15 +124,16 @@ const FoodDetails = () => {
           <IconButton onClick={() => navigate(-1)} sx={{ mr: 2 }}>
             <ArrowBack />
           </IconButton>
-          <Typography variant="h4" fontWeight={700}>
-            {food.image} {food.name}
-          </Typography>
+          <ShinyText 
+            text={food.name}
+            style={{ fontSize: '2rem', fontWeight: 700 }}
+          />
         </Box>
       </motion.div>
 
       <Grid container spacing={3}>
         {/* Main Info Card */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -141,16 +144,44 @@ const FoodDetails = () => {
                 height: '100%',
                 background: category?.gradient,
                 color: 'white',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
+              <BorderBeam 
+                size={300} 
+                duration={10} 
+                colorFrom="#ffffff" 
+                colorTo="rgba(255,255,255,0.3)"
+              />
               <CardContent sx={{ textAlign: 'center', py: 4 }}>
                 <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 3, repeat: Infinity }}
                 >
-                  <Typography variant="h1" sx={{ mb: 2 }}>
-                    {food.image}
-                  </Typography>
+                  <Box sx={{ 
+                    mb: 2, 
+                    borderRadius: 3, 
+                    overflow: 'hidden',
+                    display: 'inline-block',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    background: 'rgba(255,255,255,0.1)',
+                    p: 1,
+                  }}>
+                    <OptimizedImage 
+                      foodName={food.name}
+                      subCategory={food.subCategory}
+                      category={food.category}
+                      alt={food.name}
+                      width={180}
+                      height={180}
+                      style={{ 
+                        borderRadius: '12px',
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                    />
+                  </Box>
                 </motion.div>
                 <Typography variant="h4" fontWeight={700} gutterBottom>
                   {nutrition.calories}
@@ -165,6 +196,7 @@ const FoodDetails = () => {
                   sx={{
                     mt: 3,
                     bgcolor: 'rgba(255,255,255,0.2)',
+                    fontWeight: 600,
                     '&:hover': {
                       bgcolor: 'rgba(255,255,255,0.3)',
                     },
@@ -178,7 +210,7 @@ const FoodDetails = () => {
         </Grid>
 
         {/* Macros Chart */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -230,7 +262,7 @@ const FoodDetails = () => {
         </Grid>
 
         {/* Health Impact */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -282,7 +314,7 @@ const FoodDetails = () => {
         </Grid>
 
         {/* Detailed Nutrition */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -301,7 +333,7 @@ const FoodDetails = () => {
                     { label: 'Carbs', value: nutrition.carbs, color: chartColors.carbs },
                     { label: 'Fats', value: nutrition.fats, color: chartColors.fats },
                   ].map((item) => (
-                    <Grid item xs={12} key={item.label}>
+                    <Grid size={{ xs: 12 }} key={item.label}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography variant="body2">{item.label}</Typography>
                         <Typography variant="body2" fontWeight={600}>{item.value}g</Typography>
@@ -328,7 +360,7 @@ const FoodDetails = () => {
         </Grid>
 
         {/* Vitamins & Minerals */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -72,7 +72,7 @@ const TodaysMeals = () => {
 
       <Grid container spacing={3}>
         {/* Search and Add Section */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -179,7 +179,7 @@ const TodaysMeals = () => {
         </Grid>
 
         {/* Today's Meals List */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -251,7 +251,7 @@ const TodaysMeals = () => {
         </Grid>
 
         {/* Summary Card */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -271,7 +271,7 @@ const TodaysMeals = () => {
                     { label: 'Fiber', value: totals.fiber, unit: 'g', color: chartColors.fiber },
                     { label: 'Sugar', value: totals.sugar, unit: 'g', color: chartColors.sugar },
                   ].map((item) => (
-                    <Grid item xs={6} sm={4} md={2} key={item.label}>
+                    <Grid size={{ xs: 6, sm: 4, md: 2 }} key={item.label}>
                       <Box sx={{ textAlign: 'center' }}>
                         <Typography variant="h4" fontWeight={700}>
                           {Math.round(item.value)}
@@ -326,7 +326,7 @@ const TodaysMeals = () => {
                   { label: 'Fiber', value: selectedFood.nutrition.fiber, unit: 'g', color: chartColors.fiber },
                   { label: 'Sugar', value: selectedFood.nutrition.sugar, unit: 'g', color: chartColors.sugar },
                 ].map((item) => (
-                  <Grid item xs={6} key={item.label}>
+                  <Grid size={{ xs: 6 }} key={item.label}>
                     <Box sx={{ mb: 1 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography variant="body2">{item.label}</Typography>

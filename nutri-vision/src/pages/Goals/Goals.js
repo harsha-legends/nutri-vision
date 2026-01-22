@@ -132,7 +132,7 @@ const Goals = () => {
           const goalMet = isGoalMet(current, goals[item.key]);
 
           return (
-            <Grid item xs={12} md={6} key={item.key}>
+            <Grid size={{ xs: 12, md: 6 }} key={item.key}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -293,7 +293,7 @@ const Goals = () => {
                 const current = totals[item.key] || 0;
                 const remaining = Math.max(goals[item.key] - current, 0);
                 return (
-                  <Grid item xs={6} sm={3} key={item.key}>
+                  <Grid size={{ xs: 6, sm: 3 }} key={item.key}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h4" fontWeight={700}>
                         {Math.round(remaining)}

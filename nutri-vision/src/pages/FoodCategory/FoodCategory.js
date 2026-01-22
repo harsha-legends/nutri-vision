@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -23,6 +23,48 @@ import { foods, foodCategories } from '../../data/foodsData';
 import { vegFoodsDatabase, vegSubCategories } from '../../data/vegFoodsDatabase';
 import { nonVegFoodsDatabase, nonVegSubCategories } from '../../data/nonVegFoodsDatabase';
 import { useMeals } from '../../context/MealsContext';
+import { ShimmerGrid } from '../../components/ui/Shimmer';
+
+// Food image database for realistic images
+const foodImageDatabase = {
+  // Starters
+  'samosa': 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=300&h=200&fit=crop',
+  'pakora': 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=300&h=200&fit=crop',
+  'paneer': 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=300&h=200&fit=crop',
+  'tikka': 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=300&h=200&fit=crop',
+  // Main dishes
+  'biryani': 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=300&h=200&fit=crop',
+  'curry': 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=300&h=200&fit=crop',
+  'dal': 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=300&h=200&fit=crop',
+  'rice': 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=300&h=200&fit=crop',
+  // Non-veg
+  'chicken': 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=300&h=200&fit=crop',
+  'mutton': 'https://images.unsplash.com/photo-1545247181-516773cae754?w=300&h=200&fit=crop',
+  'fish': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=300&h=200&fit=crop',
+  'prawn': 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?w=300&h=200&fit=crop',
+  'egg': 'https://images.unsplash.com/photo-1482049016530-d79f7d9ca7e0?w=300&h=200&fit=crop',
+  'kebab': 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=300&h=200&fit=crop',
+  // Beverages
+  'juice': 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=300&h=200&fit=crop',
+  'lassi': 'https://images.unsplash.com/photo-1626200419199-391ae4be7f4d?w=300&h=200&fit=crop',
+  'smoothie': 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=300&h=200&fit=crop',
+  'milkshake': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=300&h=200&fit=crop',
+  'tea': 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300&h=200&fit=crop',
+  'coffee': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&h=200&fit=crop',
+  // Default
+  'default': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=200&fit=crop',
+};
+
+// Get food image URL
+const getFoodImage = (foodName) => {
+  const name = foodName.toLowerCase();
+  for (const [key, url] of Object.entries(foodImageDatabase)) {
+    if (name.includes(key)) {
+      return url;
+    }
+  }
+  return foodImageDatabase.default;
+};
 
 const FoodCategory = () => {
   const { categoryId } = useParams();
@@ -34,8 +76,16 @@ const FoodCategory = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState('all');
   const [showFilters, setShowFilters] = useState(true);
   const [isFiltering, setIsFiltering] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const category = foodCategories[categoryId];
+
+  // Simulate initial loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [categoryId]);
+  
   const categoryFoods = useMemo(() => {
     // Use the new comprehensive databases for specific categories
     if (categoryId === 'veg') {
@@ -167,11 +217,6 @@ const FoodCategory = () => {
       opacity: 1,
       transition: { staggerChildren: 0.1 }
     }
-  };
-
-  const cardVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
   };
 
   return (
@@ -446,10 +491,15 @@ const FoodCategory = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        key={`${selectedSubCategory}-${searchQuery}`} // Force re-animation on filter change
+        key={`${selectedSubCategory}-${searchQuery}`}
       >
-        {/* Loading indicator */}
-        {isFiltering && (
+        {/* Loading Shimmer */}
+        {isLoading && (
+          <ShimmerGrid count={8} columns={4} />
+        )}
+
+        {/* Loading indicator for filtering */}
+        {isFiltering && !isLoading && (
           <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography variant="body2" color="text.secondary">
               Filtering foods...
@@ -457,92 +507,168 @@ const FoodCategory = () => {
           </Box>
         )}
 
-        <Grid container spacing={3}>
-          {filteredFoods.map((food, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={`${food.id}-${index}`}>
-              <motion.div 
-                variants={cardVariants}
-                transition={{ delay: index * 0.05 }} // Staggered animation
-              >
-                <Card
-                  sx={{
-                    height: '100%',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: 3,
-                    },
-                    cursor: 'pointer',
-                  }}
+        {!isLoading && (
+          <Grid container spacing={{ xs: 2, md: 3 }}>
+            {filteredFoods.map((food, index) => (
+              <Grid size={{ xs: 6, sm: 6, md: 4, lg: 3 }} key={`${food.id}-${index}`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.3) }}
+                  whileHover={{ y: -4 }}
                 >
-                  <CardActionArea onClick={() => navigate(`/food/${food.id}`)}>
-                    <CardContent>
-                      <Box sx={{ textAlign: 'center', mb: 2 }}>
-                        <Typography variant="h2">{food.image}</Typography>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      borderRadius: { xs: 2, md: 3 },
+                      overflow: 'hidden',
+                      boxShadow: (theme) => theme.palette.mode === 'dark' 
+                        ? '0 4px 20px rgba(0,0,0,0.4)'
+                        : '0 4px 20px rgba(0,0,0,0.08)',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        boxShadow: (theme) => theme.palette.mode === 'dark'
+                          ? '0 12px 40px rgba(0,0,0,0.6)'
+                          : '0 12px 40px rgba(0,0,0,0.15)',
+                      },
+                    }}
+                  >
+                    <CardActionArea onClick={() => navigate(`/food/${food.id}`)}>
+                      {/* Food Image */}
+                      <Box 
+                        sx={{ 
+                          height: { xs: 100, sm: 120, md: 140 },
+                          overflow: 'hidden',
+                          position: 'relative',
+                          background: (theme) => theme.palette.mode === 'dark'
+                            ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+                            : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={getFoodImage(food.name)}
+                          alt={food.name}
+                          sx={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            transition: 'transform 0.3s ease',
+                            '&:hover': {
+                              transform: 'scale(1.05)',
+                            },
+                          }}
+                          onError={(e) => {
+                            e.target.src = foodImageDatabase.default;
+                          }}
+                        />
+                        {/* Category Badge */}
+                        <Chip
+                          size="small"
+                          label={isVegCategory ? '🥬 Veg' : '🍖 Non-Veg'}
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            bgcolor: isVegCategory ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '10px',
+                            height: 22,
+                          }}
+                        />
                       </Box>
-                      <Typography variant="h6" fontWeight={600} gutterBottom>
-                        {food.name}
-                      </Typography>
                       
-                      {/* Subcategory Chip */}
-                      {food.subCategory && (
-                        <Box sx={{ mb: 2 }}>
+                      <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
+                        <Typography 
+                          variant="subtitle1" 
+                          fontWeight={600} 
+                          noWrap
+                          sx={{ 
+                            fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' },
+                            mb: 0.5,
+                          }}
+                        >
+                          {food.name}
+                        </Typography>
+                        
+                        {/* Subcategory Chip */}
+                        {food.subCategory && (
                           <Chip
                             size="small"
-                            label={`${subCategoriesData[food.subCategory]?.icon || '🍴'} ${subCategoriesData[food.subCategory]?.name || food.subCategory}`}
+                            label={subCategoriesData[food.subCategory]?.name || food.subCategory}
                             sx={{ 
                               backgroundColor: subCategoriesData[food.subCategory]?.color || 'rgba(34, 197, 94, 0.1)',
                               color: subCategoriesData[food.subCategory]?.textColor || 'rgb(34, 197, 94)',
                               fontWeight: 600,
-                              border: `1px solid ${subCategoriesData[food.subCategory]?.textColor || 'rgb(34, 197, 94)'}40`,
+                              fontSize: '10px',
+                              height: 20,
+                              mb: 1,
+                            }}
+                          />
+                        )}
+
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1 }}>
+                          <Chip
+                            size="small"
+                            label={`${food.nutrition.calories} kcal`}
+                            sx={{ 
+                              fontSize: '10px',
+                              height: 22,
+                              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                              color: 'white',
+                              fontWeight: 600
+                            }}
+                          />
+                          <Chip
+                            size="small"
+                            label={`${food.nutrition.protein}g`}
+                            sx={{ 
+                              fontSize: '10px',
+                              height: 22,
+                              background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+                              color: 'white',
+                              fontWeight: 600
                             }}
                           />
                         </Box>
-                      )}
-
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                         <Chip
                           size="small"
-                          label={`${food.nutrition.calories} kcal`}
-                          color="primary"
-                          variant="outlined"
+                          label={`${food.healthImpact?.riskLevel || 'Low'} Risk`}
+                          color={getRiskColor(food.healthImpact?.riskLevel)}
+                          sx={{ fontSize: '10px', height: 20 }}
                         />
-                        <Chip
-                          size="small"
-                          label={`${food.nutrition.protein}g protein`}
-                          color="secondary"
-                          variant="outlined"
-                        />
-                      </Box>
-                      <Chip
+                      </CardContent>
+                    </CardActionArea>
+                    <Box sx={{ px: { xs: 1.5, md: 2 }, pb: { xs: 1.5, md: 2 } }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
                         size="small"
-                        label={`Risk: ${food.healthImpact.riskLevel}`}
-                        color={getRiskColor(food.healthImpact.riskLevel)}
-                      />
-                    </CardContent>
-                  </CardActionArea>
-                  <Box sx={{ px: 2, pb: 2 }}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={(e) => handleAddMeal(food, e)}
-                      sx={{
-                        background: category.gradient,
-                        '&:hover': {
-                          background: category.gradient,
-                          filter: 'brightness(1.1)',
-                        },
-                      }}
-                    >
-                      Add to Meals
-                    </Button>
-                  </Box>
-                </Card>
-              </motion.div>
-            </Grid>
-          ))}
-        </Grid>
+                        startIcon={<Add />}
+                        onClick={(e) => handleAddMeal(food, e)}
+                        sx={{
+                          background: category?.gradient || 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)',
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          borderRadius: 2,
+                          fontSize: { xs: '0.75rem', md: '0.875rem' },
+                          py: { xs: 0.75, md: 1 },
+                          '&:hover': {
+                            background: category?.gradient || 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)',
+                            filter: 'brightness(1.1)',
+                          },
+                        }}
+                      >
+                        Add to Meals
+                      </Button>
+                    </Box>
+                  </Card>
+                </motion.div>
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </motion.div>
 
       {/* No Results Message */}

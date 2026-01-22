@@ -83,7 +83,7 @@ const Profile = () => {
 
       <Grid container spacing={3}>
         {/* Profile Picture Card */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -151,7 +151,7 @@ const Profile = () => {
         </Grid>
 
         {/* Profile Details */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -184,7 +184,7 @@ const Profile = () => {
                 </Box>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Username"
@@ -194,7 +194,7 @@ const Profile = () => {
                       disabled={!editing}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Email"
@@ -204,7 +204,7 @@ const Profile = () => {
                       disabled={!editing}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth disabled={!editing}>
                       <InputLabel>Gender</InputLabel>
                       <Select
@@ -219,7 +219,7 @@ const Profile = () => {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={3}>
+                  <Grid size={{ xs: 12, sm: 3 }}>
                     <TextField
                       fullWidth
                       label="Weight (kg)"
@@ -230,7 +230,7 @@ const Profile = () => {
                       disabled={!editing}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={3}>
+                  <Grid size={{ xs: 12, sm: 3 }}>
                     <TextField
                       fullWidth
                       label="Height (cm)"
@@ -250,7 +250,7 @@ const Profile = () => {
                   Health Stats
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6} sm={3}>
+                  <Grid size={{ xs: 6, sm: 3 }}>
                     <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Typography variant="h5" fontWeight={700} color="primary">
                         {user?.dailyGoal || 2000}
@@ -260,7 +260,7 @@ const Profile = () => {
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid size={{ xs: 6, sm: 3 }}>
                     <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Typography variant="h5" fontWeight={700} color="secondary">
                         {formData.weight || '-'}
@@ -270,7 +270,7 @@ const Profile = () => {
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid size={{ xs: 6, sm: 3 }}>
                     <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Typography variant="h5" fontWeight={700} color="info.main">
                         {formData.height || '-'}
@@ -280,7 +280,7 @@ const Profile = () => {
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid size={{ xs: 6, sm: 3 }}>
                     <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Typography variant="h5" fontWeight={700} color="warning.main">
                         {formData.weight && formData.height

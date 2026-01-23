@@ -522,7 +522,7 @@ const MainLayout = () => {
         <Toolbar sx={{ display: { md: 'none' } }} />
         
         {/* Page Content with Animation */}
-        <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: '100%', overflow: 'hidden' }}>
+        <Box sx={{ maxWidth: '100%', overflow: 'hidden' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}

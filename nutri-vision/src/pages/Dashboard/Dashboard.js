@@ -11,6 +11,10 @@ import {
   useTheme,
   Avatar,
   Skeleton,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon,
+  Divider,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -26,8 +30,10 @@ import {
   BarChart,
   CameraAlt,
   EmojiEvents,
+  Close,
 } from '@mui/icons-material';
-import { foodCategories } from '../../data/foodsData';
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { foodCategories, getAllFoods } from '../../data/foodsData';
 import { useMeals } from '../../context/MealsContext';
 import { useAuth } from '../../context/AuthContext';
 import { CategoryCardShimmer, StatsCardShimmer } from '../../components/ui/Shimmer';
@@ -36,6 +42,12 @@ import {
   NumberTicker, 
   BorderBeam,
 } from '../../components/ui/MagicUI';
+import { calculateStreak, getAchievements, getMacroBalance, getBalanceRecommendation } from '../../utils/streakUtils';
+import { getSmartSuggestions, getMotivationalQuote, getTimeBasedGreeting } from '../../utils/smartSuggestions';
+import StreakBadge from '../../components/dashboard/StreakBadge';
+import MealTimeline from '../../components/dashboard/MealTimeline';
+import ActivityTimeline from '../../components/dashboard/ActivityTimeline';
+import MacroBalanceWidget from '../../components/dashboard/MacroBalanceWidget';
 
 // Category images mapping for realistic photos
 const categoryImages = {
@@ -57,11 +69,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const { getTodaysTotals } = useMeals();
+  const { getTodaysTotals, meals } = useMeals();
   const { user } = useAuth();
   const totals = getTodaysTotals();
   const [isLoading, setIsLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState({});
+  const [fabOpen, setFabOpen] = useState(false);
 
   const categories = Object.values(foodCategories);
 
@@ -81,6 +94,46 @@ const Dashboard = () => {
 
   const getProgress = (current, goal) => Math.min((current / goal) * 100, 100);
   const totalCaloriesProgress = getProgress(totals.calories, goals.calories);
+
+  // Calculate streak and achievements
+  const streak = calculateStreak(meals);
+  const achievements = getAchievements(totals, goals, streak, meals);
+  const macroBalance = getMacroBalance(totals);
+  const balanceRecommendation = getBalanceRecommendation(macroBalance, totals, goals);
+
+  // Smart suggestions
+  const remainingCalories = goals.calories - totals.calories;
+  const remainingProtein = goals.protein - totals.protein;
+  const allFoods = getAllFoods();
+  const suggestions = getSmartSuggestions(remainingCalories, remainingProtein, allFoods);
+  const motivationalQuote = getMotivationalQuote();
+  const greeting = getTimeBasedGreeting();
+
+  // Mock activity data (in real app, would come from context)
+  const activities = [
+    { id: 1, type: 'meal', title: 'Chicken Breast Salad', calories: 350, timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+    { id: 2, type: 'water', title: 'Water', amount: '500ml', timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000) },
+    { id: 3, type: 'exercise', title: 'Morning Run', duration: '30 min', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000) },
+  ];
+
+  // Weekly comparison data (mock - would be calculated from historical meals)
+  const weeklyData = [
+    { day: 'Mon', calories: 1850, protein: 110 },
+    { day: 'Tue', calories: 2100, protein: 125 },
+    { day: 'Wed', calories: 1920, protein: 115 },
+    { day: 'Thu', calories: 2050, protein: 130 },
+    { day: 'Fri', calories: 1980, protein: 118 },
+    { day: 'Sat', calories: 2200, protein: 135 },
+    { day: 'Today', calories: totals.calories, protein: totals.protein },
+  ];
+
+  // FAB actions
+  const fabActions = [
+    { icon: <CameraAlt />, name: 'Scan Food', action: () => navigate('/food-scanner') },
+    { icon: <Restaurant />, name: 'Add Meal', action: () => navigate('/todays-meals') },
+    { icon: <BarChart />, name: 'View Analytics', action: () => navigate('/analytics') },
+    { icon: <TrackChanges />, name: 'Set Goals', action: () => navigate('/goals') },
+  ];
 
   const statsCards = [
     {
@@ -543,6 +596,227 @@ const Dashboard = () => {
         </AnimatePresence>
       </Grid>
 
+      {/* NEW: Streak & Achievements Section */}
+      <BlurFade delay={0.5}>
+        <StreakBadge streak={streak} achievements={achievements} />
+      </BlurFade>
+
+      {/* NEW: Meal Timeline Section */}
+      <BlurFade delay={0.6}>
+        <MealTimeline meals={meals} />
+      </BlurFade>
+
+      {/* NEW: Smart Insights & Weekly Chart Row */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
+        {/* Smart Suggestions Card */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <BlurFade delay={0.65}>
+            <Card
+              sx={{
+                borderRadius: 3,
+                background: isDark
+                  ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+                  : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(34, 197, 94, 0.2)'}`,
+                boxShadow: isDark 
+                  ? '0 8px 32px rgba(0,0,0,0.3)'
+                  : '0 8px 32px rgba(34, 197, 94, 0.15)',
+                height: '100%',
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Avatar sx={{ bgcolor: '#22c55e', width: 40, height: 40 }}>
+                    <LocalFireDepartment />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" fontWeight={700}>
+                      💡 Smart Suggestions
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {greeting}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Divider sx={{ mb: 2 }} />
+
+                {remainingCalories > 0 ? (
+                  <>
+                    <Typography variant="body2" sx={{ mb: 2, fontStyle: 'italic', color: 'text.secondary' }}>
+                      "{motivationalQuote.text}"
+                    </Typography>
+                    
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" fontWeight={600} gutterBottom>
+                        Recommended meals for remaining {Math.round(remainingCalories)} kcal:
+                      </Typography>
+                      {suggestions.slice(0, 3).map((food, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            py: 1,
+                            px: 1.5,
+                            mt: 1,
+                            borderRadius: 2,
+                            bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(34, 197, 94, 0.1)',
+                          }}
+                        >
+                          <Typography variant="body2" fontWeight={500}>
+                            {food.name}
+                          </Typography>
+                          <Chip
+                            label={`${food.calories} kcal`}
+                            size="small"
+                            sx={{
+                              bgcolor: '#22c55e',
+                              color: 'white',
+                              fontWeight: 600,
+                              fontSize: '0.7rem',
+                            }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <EmojiEvents sx={{ fontSize: 48, color: '#22c55e', mb: 1 }} />
+                    <Typography variant="body1" fontWeight={600} gutterBottom>
+                      Goal Achieved! 🎉
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      You've reached your calorie target for today!
+                    </Typography>
+                  </Box>
+                )}
+
+                {balanceRecommendation && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(59, 130, 246, 0.1)',
+                      border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.3)'}`,
+                    }}
+                  >
+                    <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
+                      📊 Balance Tip:
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {balanceRecommendation}
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </BlurFade>
+        </Grid>
+
+        {/* Weekly Comparison Chart */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <BlurFade delay={0.7}>
+            <Card
+              sx={{
+                borderRadius: 3,
+                background: isDark
+                  ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+                  : 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(59, 130, 246, 0.2)'}`,
+                boxShadow: isDark 
+                  ? '0 8px 32px rgba(0,0,0,0.3)'
+                  : '0 8px 32px rgba(59, 130, 246, 0.15)',
+                height: '100%',
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <Avatar sx={{ bgcolor: '#3b82f6', width: 40, height: 40 }}>
+                    <BarChart />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" fontWeight={700}>
+                      📈 Weekly Trend
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Your progress this week
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Divider sx={{ mb: 2 }} />
+
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={weeklyData}>
+                    <XAxis 
+                      dataKey="day" 
+                      stroke={isDark ? '#9ca3af' : '#6b7280'}
+                      style={{ fontSize: '0.75rem' }}
+                    />
+                    <YAxis 
+                      stroke={isDark ? '#9ca3af' : '#6b7280'}
+                      style={{ fontSize: '0.75rem' }}
+                    />
+                    <RechartsTooltip 
+                      contentStyle={{
+                        backgroundColor: isDark ? '#1f2937' : 'white',
+                        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="calories" 
+                      stroke="#3b82f6" 
+                      strokeWidth={3}
+                      dot={{ fill: '#3b82f6', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="protein" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#8b5cf6', r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+
+                <Box sx={{ display: 'flex', gap: 2, mt: 2, justifyContent: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#3b82f6' }} />
+                    <Typography variant="caption">Calories</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: '#8b5cf6' }} />
+                    <Typography variant="caption">Protein (g)</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </BlurFade>
+        </Grid>
+      </Grid>
+
+      {/* NEW: Macro Balance & Activity Feed Row */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <BlurFade delay={0.75}>
+            <MacroBalanceWidget totals={totals} balance={macroBalance} recommendations={[balanceRecommendation]} />
+          </BlurFade>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <BlurFade delay={0.8}>
+            <ActivityTimeline activities={activities} />
+          </BlurFade>
+        </Grid>
+      </Grid>
+
       {/* Quick Actions Section */}
       <BlurFade delay={0.8}>
         <Box sx={{ mt: { xs: 4, md: 6 } }}>
@@ -625,6 +899,41 @@ const Dashboard = () => {
           </Grid>
         </Box>
       </BlurFade>
+
+      {/* NEW: Floating Action Button for Quick Access */}
+      <SpeedDial
+        ariaLabel="Quick actions speed dial"
+        sx={{ 
+          position: 'fixed', 
+          bottom: { xs: 70, sm: 24 }, 
+          right: { xs: 16, sm: 24 },
+          '& .MuiFab-primary': {
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            boxShadow: '0 8px 32px rgba(99, 102, 241, 0.4)',
+          },
+        }}
+        icon={<SpeedDialIcon openIcon={<Close />} />}
+        onClose={() => setFabOpen(false)}
+        onOpen={() => setFabOpen(true)}
+        open={fabOpen}
+      >
+        {fabActions.map((action) => (
+          <SpeedDialAction
+            key={action.name}
+            icon={action.icon}
+            title={action.name}
+            onClick={action.action}
+            sx={{
+              '& .MuiSpeedDialAction-fab': {
+                bgcolor: isDark ? '#1f2937' : 'white',
+                '&:hover': {
+                  bgcolor: isDark ? '#374151' : '#f3f4f6',
+                },
+              },
+            }}
+          />
+        ))}
+      </SpeedDial>
     </Box>
   );
 };

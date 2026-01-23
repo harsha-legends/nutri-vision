@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, LinearProgress } from '@mui/material';
+import { Box, Card, CardContent, Typography, LinearProgress, Avatar } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { DonutLarge } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
 const MacroBalanceWidget = ({ totals, balance, recommendations = [] }) => {
@@ -22,9 +23,14 @@ const MacroBalanceWidget = ({ totals, balance, recommendations = [] }) => {
   return (
     <Card>
       <CardContent>
-        <Typography variant="h6" fontWeight={600} gutterBottom>
-          ⚖️ Macro Balance
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <Avatar sx={{ bgcolor: '#8b5cf6', width: 36, height: 36 }}>
+            <DonutLarge sx={{ fontSize: 20 }} />
+          </Avatar>
+          <Typography variant="h6" fontWeight={600}>
+            Macro Balance
+          </Typography>
+        </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
           {/* Pie Chart */}
@@ -112,9 +118,12 @@ const MacroBalanceWidget = ({ totals, balance, recommendations = [] }) => {
               borderColor: 'divider',
             }}
           >
-            <Typography variant="caption" fontWeight={700} color="primary" gutterBottom display="block">
-              💡 Suggestions
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+              <DonutLarge sx={{ fontSize: 14, color: 'primary.main' }} />
+              <Typography variant="caption" fontWeight={700} color="primary">
+                Suggestions
+              </Typography>
+            </Box>
             {recommendations.map((rec, index) => (
               <Typography key={index} variant="caption" color="text.secondary" display="block">
                 • {rec}

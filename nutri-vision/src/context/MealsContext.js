@@ -30,14 +30,24 @@ export const MealsProvider = ({ children }) => {
     }
   }, [user, loadMeals]);
 
-  const addMeal = (food) => {
+  const addMeal = (food, mealType = null) => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const storedMeals = JSON.parse(localStorage.getItem(`meals_${user?.id}`) || '{}');
+    
+    // Auto-detect meal type based on current time if not provided
+    const getMealTypeFromTime = () => {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 11) return 'breakfast';
+      if (hour >= 11 && hour < 15) return 'lunch';
+      if (hour >= 15 && hour < 18) return 'snack';
+      return 'dinner';
+    };
     
     const mealEntry = {
       ...food,
       addedAt: new Date().toISOString(),
       mealId: Date.now().toString(),
+      mealType: mealType || food.mealType || getMealTypeFromTime(),
     };
     
     if (!storedMeals[today]) {

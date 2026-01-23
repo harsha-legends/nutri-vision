@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -12,7 +12,7 @@ import {
   LinearProgress,
   Divider,
 } from '@mui/material';
-import { ArrowBack, Add, Warning, CheckCircle, Error } from '@mui/icons-material';
+import { ArrowBack, Warning, CheckCircle, Error } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import {
   PieChart,
@@ -26,13 +26,31 @@ import { useMeals } from '../../context/MealsContext';
 import { chartColors } from '../../theme/theme';
 import OptimizedImage from '../../components/ui/OptimizedImage';
 import { BorderBeam, ShinyText } from '../../components/ui/MagicUI';
+import QuantityButton from '../../components/ui/QuantityButton';
 
 const FoodDetails = () => {
   const { foodId } = useParams();
   const navigate = useNavigate();
-  const { addMeal } = useMeals();
+  const { addMeal, todaysMeals, removeMeal } = useMeals();
   
   const food = getFoodById(foodId);
+
+  // Get meal count for this food
+  const mealCount = useMemo(() => {
+    if (!food) return 0;
+    return todaysMeals.filter(m => m.id === food.id).length;
+  }, [todaysMeals, food]);
+
+  const handleAddMeal = useCallback(() => {
+    if (food) addMeal(food);
+  }, [food, addMeal]);
+
+  const handleRemoveOneMeal = useCallback(() => {
+    const mealToRemove = todaysMeals.find(m => m.id === food?.id);
+    if (mealToRemove) {
+      removeMeal(mealToRemove.mealId);
+    }
+  }, [todaysMeals, food, removeMeal]);
 
   if (!food) {
     return (
@@ -189,21 +207,14 @@ const FoodDetails = () => {
                 <Typography variant="body1" sx={{ opacity: 0.9 }}>
                   Calories per serving
                 </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={() => addMeal(food)}
-                  sx={{
-                    mt: 3,
-                    bgcolor: 'rgba(255,255,255,0.2)',
-                    fontWeight: 600,
-                    '&:hover': {
-                      bgcolor: 'rgba(255,255,255,0.3)',
-                    },
-                  }}
-                >
-                  Add to Today's Meals
-                </Button>
+                <Box sx={{ mt: 3 }}>
+                  <QuantityButton
+                    count={mealCount}
+                    onAdd={handleAddMeal}
+                    onRemove={handleRemoveOneMeal}
+                    size="large"
+                  />
+                </Box>
               </CardContent>
             </Card>
           </motion.div>

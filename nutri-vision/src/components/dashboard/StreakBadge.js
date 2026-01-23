@@ -12,6 +12,8 @@ const StreakBadge = ({ streak, achievements = [] }) => {
         color: 'white',
         position: 'relative',
         overflow: 'hidden',
+        mt: 8,
+        mb: 8
       }}
     >
       {/* Animated Background Pattern */}
@@ -26,7 +28,7 @@ const StreakBadge = ({ streak, achievements = [] }) => {
         }}
       />
 
-      <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+      <CardContent sx={{ position: 'relative', zIndex: 1}}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
           <Box>
             <Typography variant="overline" sx={{ opacity: 0.9, fontSize: '0.65rem' }}>
@@ -60,21 +62,24 @@ const StreakBadge = ({ streak, achievements = [] }) => {
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {streak >= 3 && (
               <Chip
-                label="3 Day Streak 🎯"
+                icon={<EmojiEvents sx={{ fontSize: 16, color: 'white !important' }} />}
+                label="3 Day Streak"
                 size="small"
                 sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
               />
             )}
             {streak >= 7 && (
               <Chip
-                label="Week Warrior 🔥"
+                icon={<LocalFireDepartment sx={{ fontSize: 16, color: 'white !important' }} />}
+                label="Week Warrior"
                 size="small"
                 sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
               />
             )}
             {streak >= 30 && (
               <Chip
-                label="Monthly Master 👑"
+                icon={<EmojiEvents sx={{ fontSize: 16, color: 'white !important' }} />}
+                label="Monthly Master"
                 size="small"
                 sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
               />

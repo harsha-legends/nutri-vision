@@ -31,6 +31,11 @@ import {
   CameraAlt,
   EmojiEvents,
   Close,
+  Celebration,
+  LightbulbOutlined,
+  ShowChart,
+  DonutLarge,
+  Explore,
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { foodCategories, getAllFoods } from '../../data/foodsData';
@@ -69,7 +74,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const { getTodaysTotals, meals } = useMeals();
+  const { getTodaysTotals, todaysMeals } = useMeals();
   const { user } = useAuth();
   const totals = getTodaysTotals();
   const [isLoading, setIsLoading] = useState(true);
@@ -96,8 +101,8 @@ const Dashboard = () => {
   const totalCaloriesProgress = getProgress(totals.calories, goals.calories);
 
   // Calculate streak and achievements
-  const streak = calculateStreak(meals);
-  const achievements = getAchievements(totals, goals, streak, meals);
+  const streak = calculateStreak(todaysMeals);
+  const achievements = getAchievements(totals, goals, streak, todaysMeals);
   const macroBalance = getMacroBalance(totals);
   const balanceRecommendation = getBalanceRecommendation(macroBalance, totals, goals);
 
@@ -134,6 +139,19 @@ const Dashboard = () => {
     { icon: <BarChart />, name: 'View Analytics', action: () => navigate('/analytics') },
     { icon: <TrackChanges />, name: 'Set Goals', action: () => navigate('/goals') },
   ];
+
+  // Meal handlers
+  const handleAddMeal = (mealType) => {
+    // Navigate to add meal page with meal type
+    navigate('/todays-meals', { state: { mealType } });
+  };
+
+  const handleViewMeal = (meal) => {
+    // Navigate to meal details or food details
+    if (meal.foodId) {
+      navigate(`/food/${meal.foodId}`);
+    }
+  };
 
   const statsCards = [
     {
@@ -208,9 +226,13 @@ const Dashboard = () => {
                 : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
             }}
           >
-            Welcome back, {user?.username || 'User'}! 👋
+            <Celebration sx={{ fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' } }} />
+            Welcome back, {user?.username || 'User'}!
           </Typography>
           <Typography 
             variant="body1" 
@@ -437,17 +459,19 @@ const Dashboard = () => {
       {/* Food Categories Section */}
       <BlurFade delay={0.3}>
         <Box sx={{ mb: 3 }}>
-          <Typography 
-            variant="h5" 
-            fontWeight={700} 
-            sx={{ 
-              mb: 0.5,
-              fontSize: { xs: '1.25rem', sm: '1.5rem' },
-              color: isDark ? 'white' : 'grey.800',
-            }}
-          >
-            🍽️ Explore Categories
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+            <Explore sx={{ fontSize: { xs: 24, sm: 28 }, color: isDark ? '#818cf8' : '#4f46e5' }} />
+            <Typography 
+              variant="h5" 
+              fontWeight={700} 
+              sx={{ 
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                color: isDark ? 'white' : 'grey.800',
+              }}
+            >
+              Explore Categories
+            </Typography>
+          </Box>
           <Typography 
             variant="body2" 
             sx={{ color: isDark ? 'grey.400' : 'grey.600' }}
@@ -603,7 +627,11 @@ const Dashboard = () => {
 
       {/* NEW: Meal Timeline Section */}
       <BlurFade delay={0.6}>
-        <MealTimeline meals={meals} />
+        <MealTimeline 
+          meals={todaysMeals} 
+          onAddMeal={handleAddMeal}
+          onViewMeal={handleViewMeal}
+        />
       </BlurFade>
 
       {/* NEW: Smart Insights & Weekly Chart Row */}
@@ -627,11 +655,11 @@ const Dashboard = () => {
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                   <Avatar sx={{ bgcolor: '#22c55e', width: 40, height: 40 }}>
-                    <LocalFireDepartment />
+                    <LightbulbOutlined />
                   </Avatar>
                   <Box>
                     <Typography variant="h6" fontWeight={700}>
-                      💡 Smart Suggestions
+                      Smart Suggestions
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {greeting}
@@ -686,7 +714,7 @@ const Dashboard = () => {
                   <Box sx={{ textAlign: 'center', py: 2 }}>
                     <EmojiEvents sx={{ fontSize: 48, color: '#22c55e', mb: 1 }} />
                     <Typography variant="body1" fontWeight={600} gutterBottom>
-                      Goal Achieved! 🎉
+                      Goal Achieved!
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       You've reached your calorie target for today!
@@ -704,9 +732,12 @@ const Dashboard = () => {
                       border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.3)'}`,
                     }}
                   >
-                    <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
-                      📊 Balance Tip:
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <DonutLarge sx={{ fontSize: 16, color: '#3b82f6' }} />
+                      <Typography variant="caption" fontWeight={600} display="block">
+                        Balance Tip:
+                      </Typography>
+                    </Box>
                     <Typography variant="caption" color="text.secondary">
                       {balanceRecommendation}
                     </Typography>
@@ -736,11 +767,11 @@ const Dashboard = () => {
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                   <Avatar sx={{ bgcolor: '#3b82f6', width: 40, height: 40 }}>
-                    <BarChart />
+                    <ShowChart />
                   </Avatar>
                   <Box>
                     <Typography variant="h6" fontWeight={700}>
-                      📈 Weekly Trend
+                      Weekly Trend
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       Your progress this week
@@ -820,17 +851,19 @@ const Dashboard = () => {
       {/* Quick Actions Section */}
       <BlurFade delay={0.8}>
         <Box sx={{ mt: { xs: 4, md: 6 } }}>
-          <Typography 
-            variant="h5" 
-            fontWeight={700} 
-            sx={{ 
-              mb: 2,
-              fontSize: { xs: '1.25rem', sm: '1.5rem' },
-              color: isDark ? 'white' : 'grey.800',
-            }}
-          >
-            ⚡ Quick Actions
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+            <LocalFireDepartment sx={{ fontSize: { xs: 24, sm: 28 }, color: '#f59e0b' }} />
+            <Typography 
+              variant="h5" 
+              fontWeight={700} 
+              sx={{ 
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                color: isDark ? 'white' : 'grey.800',
+              }}
+            >
+              Quick Actions
+            </Typography>
+          </Box>
           <Grid container spacing={{ xs: 1.5, sm: 2 }}>
             {[
               { 

@@ -8,7 +8,15 @@ import {
   IconButton,
   useTheme,
 } from '@mui/material';
-import { Add, ArrowForward } from '@mui/icons-material';
+import { 
+  Add, 
+  ArrowForward, 
+  WbSunny, 
+  LunchDining, 
+  Cookie, 
+  DinnerDining,
+  Restaurant,
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import OptimizedImage from '../ui/OptimizedImage';
 
@@ -17,34 +25,83 @@ const MealTimeline = ({ meals = [], onAddMeal, onViewMeal }) => {
   const isDark = theme.palette.mode === 'dark';
 
   const mealTypes = [
-    { id: 'breakfast', label: 'Breakfast', time: '7-10 AM', icon: '🌅', color: '#f59e0b' },
-    { id: 'lunch', label: 'Lunch', time: '12-2 PM', icon: '☀️', color: '#10b981' },
-    { id: 'snack', label: 'Snack', time: '4-5 PM', icon: '🍪', color: '#8b5cf6' },
-    { id: 'dinner', label: 'Dinner', time: '7-9 PM', icon: '🌙', color: '#3b82f6' },
+    { id: 'breakfast', label: 'Breakfast', time: '7-10 AM', icon: WbSunny, color: '#f59e0b' },
+    { id: 'lunch', label: 'Lunch', time: '12-2 PM', icon: LunchDining, color: '#10b981' },
+    { id: 'snack', label: 'Snack', time: '4-5 PM', icon: Cookie, color: '#8b5cf6' },
+    { id: 'dinner', label: 'Dinner', time: '7-9 PM', icon: DinnerDining, color: '#3b82f6' },
   ];
 
   const getMealsByType = (type) => {
-    return meals.filter((meal) => meal.mealType === type);
+    // If meals have mealType property, use it
+    const mealsWithType = meals.filter((meal) => meal.mealType === type);
+    if (mealsWithType.length > 0) {
+      return mealsWithType;
+    }
+    
+    // Otherwise, categorize by time added
+    return meals.filter((meal) => {
+      if (!meal.addedAt) return false;
+      const hour = new Date(meal.addedAt).getHours();
+      
+      switch (type) {
+        case 'breakfast':
+          return hour >= 5 && hour < 11;
+        case 'lunch':
+          return hour >= 11 && hour < 15;
+        case 'snack':
+          return hour >= 15 && hour < 18;
+        case 'dinner':
+          return hour >= 18 || hour < 5;
+        default:
+          return false;
+      }
+    });
   };
 
   const getTotalCalories = (mealList) => {
     return mealList.reduce((sum, meal) => sum + (meal.nutrition?.calories || 0), 0);
   };
 
+  // Group meals by food id and count quantities
+  const getGroupedMeals = (mealList) => {
+    const counts = {};
+    const grouped = [];
+    const seen = new Set();
+    
+    // Count each food item
+    mealList.forEach(meal => {
+      counts[meal.id] = (counts[meal.id] || 0) + 1;
+    });
+    
+    // Get unique meals with their counts
+    mealList.forEach(meal => {
+      if (!seen.has(meal.id)) {
+        seen.add(meal.id);
+        grouped.push({ ...meal, quantity: counts[meal.id] });
+      }
+    });
+    
+    return grouped;
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" fontWeight={600}>
-          🍽️ Today's Meals
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Restaurant sx={{ fontSize: 24, color: theme.palette.primary.main }} />
+          <Typography variant="h6" fontWeight={600}>
+            Today's Meals
+          </Typography>
+        </Box>
         <Typography variant="caption" color="text.secondary">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
         </Typography>
       </Box>
-
+    
       <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2, px: 0.5 }}>
         {mealTypes.map((mealType, index) => {
           const mealList = getMealsByType(mealType.id);
+          const groupedMealList = getGroupedMeals(mealList);
           const totalCals = getTotalCalories(mealList);
 
           return (
@@ -75,8 +132,10 @@ const MealTimeline = ({ meals = [], onAddMeal, onViewMeal }) => {
                   }}
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="h4">{mealType.icon}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar sx={{ bgcolor: `${mealType.color}20`, width: 40, height: 40 }}>
+                        <mealType.icon sx={{ color: mealType.color, fontSize: 24 }} />
+                      </Avatar>
                       <Box>
                         <Typography variant="subtitle1" fontWeight={700}>
                           {mealType.label}
@@ -131,7 +190,7 @@ const MealTimeline = ({ meals = [], onAddMeal, onViewMeal }) => {
                     </Box>
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {mealList.map((meal, idx) => (
+                      {groupedMealList.map((meal, idx) => (
                         <motion.div
                           key={meal.id}
                           initial={{ opacity: 0, x: -10 }}
@@ -150,6 +209,7 @@ const MealTimeline = ({ meals = [], onAddMeal, onViewMeal }) => {
                               borderColor: 'divider',
                               cursor: 'pointer',
                               transition: 'all 0.2s',
+                              position: 'relative',
                               '&:hover': {
                                 borderColor: mealType.color,
                                 bgcolor: 'action.hover',
@@ -157,6 +217,30 @@ const MealTimeline = ({ meals = [], onAddMeal, onViewMeal }) => {
                               },
                             }}
                           >
+                            {/* Quantity Badge */}
+                            {meal.quantity > 1 && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: -8,
+                                  left: -8,
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: '50%',
+                                  bgcolor: 'primary.main',
+                                  color: 'white',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 700,
+                                  fontSize: '0.75rem',
+                                  boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)',
+                                  zIndex: 1,
+                                }}
+                              >
+                                {meal.quantity}
+                              </Box>
+                            )}
                             {meal.image ? (
                               <Box
                                 sx={{
@@ -196,7 +280,7 @@ const MealTimeline = ({ meals = [], onAddMeal, onViewMeal }) => {
                                 {meal.name}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                {meal.nutrition?.calories || 0} kcal
+                                {(meal.nutrition?.calories || 0) * meal.quantity} kcal
                               </Typography>
                             </Box>
                             <ArrowForward sx={{ fontSize: 16, color: 'text.secondary' }} />

@@ -17,13 +17,14 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
-import { ArrowBack, Add, Search, FilterList, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { ArrowBack, Search, FilterList, ExpandMore, ExpandLess } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { foods, foodCategories } from '../../data/foodsData';
 import { vegFoodsDatabase, vegSubCategories } from '../../data/vegFoodsDatabase';
 import { nonVegFoodsDatabase, nonVegSubCategories } from '../../data/nonVegFoodsDatabase';
 import { useMeals } from '../../context/MealsContext';
 import { ShimmerGrid } from '../../components/ui/Shimmer';
+import QuantityButton from '../../components/ui/QuantityButton';
 
 // Food image database for realistic images
 const foodImageDatabase = {
@@ -69,7 +70,7 @@ const getFoodImage = (foodName) => {
 const FoodCategory = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
-  const { addMeal } = useMeals();
+  const { addMeal, todaysMeals, removeMeal } = useMeals();
 
   // State for search and filtering
   const [searchQuery, setSearchQuery] = useState('');
@@ -185,9 +186,26 @@ const FoodCategory = () => {
   };
 
   const handleAddMeal = (food, event) => {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
     addMeal(food);
   };
+
+  const handleRemoveOneMeal = (foodId, event) => {
+    if (event) event.stopPropagation();
+    const mealToRemove = todaysMeals.find(m => m.id === foodId);
+    if (mealToRemove) {
+      removeMeal(mealToRemove.mealId);
+    }
+  };
+
+  // Get meal counts for each food item
+  const mealCounts = useMemo(() => {
+    const counts = {};
+    todaysMeals.forEach(meal => {
+      counts[meal.id] = (counts[meal.id] || 0) + 1;
+    });
+    return counts;
+  }, [todaysMeals]);
 
   const getRiskColor = (riskLevel) => {
     switch (riskLevel?.toLowerCase()) {
@@ -640,28 +658,13 @@ const FoodCategory = () => {
                         />
                       </CardContent>
                     </CardActionArea>
-                    <Box sx={{ px: { xs: 1.5, md: 2 }, pb: { xs: 1.5, md: 2 } }}>
-                      <Button
-                        fullWidth
-                        variant="contained"
+                    <Box sx={{ px: { xs: 1.5, md: 2 }, pb: { xs: 1.5, md: 2 }, display: 'flex', justifyContent: 'center' }}>
+                      <QuantityButton
+                        count={mealCounts[food.id] || 0}
+                        onAdd={() => handleAddMeal(food)}
+                        onRemove={() => handleRemoveOneMeal(food.id)}
                         size="small"
-                        startIcon={<Add />}
-                        onClick={(e) => handleAddMeal(food, e)}
-                        sx={{
-                          background: category?.gradient || 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)',
-                          fontWeight: 600,
-                          textTransform: 'none',
-                          borderRadius: 2,
-                          fontSize: { xs: '0.75rem', md: '0.875rem' },
-                          py: { xs: 0.75, md: 1 },
-                          '&:hover': {
-                            background: category?.gradient || 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)',
-                            filter: 'brightness(1.1)',
-                          },
-                        }}
-                      >
-                        Add to Meals
-                      </Button>
+                      />
                     </Box>
                   </Card>
                 </motion.div>

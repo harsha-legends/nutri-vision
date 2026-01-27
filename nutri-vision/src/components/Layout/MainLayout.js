@@ -33,8 +33,6 @@ import {
   Restaurant as MealsIcon,
   Logout as LogoutIcon,
   ChevronLeft as ChevronLeftIcon,
-  LightMode as LightModeIcon,
-  DarkMode as DarkModeIcon,
   QrCode as QrCodeIcon,
   CameraAlt as CameraIcon,
   SmartToy as AIIcon,
@@ -44,6 +42,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeMode } from '../../context/ThemeContext';
+import { AnimatedThemeToggler } from '../ui/MagicUI';
 
 const drawerWidthExpanded = 260;
 const drawerWidthCollapsed = 72;
@@ -322,53 +321,40 @@ const MainLayout = () => {
       <Box sx={{ p: 1 }}>
         <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mb: 1 }} />
         
-        {/* Theme Toggle */}
-        <Tooltip title={!sidebarExpanded ? (mode === 'dark' ? 'Light Mode' : 'Dark Mode') : ''} placement="right" arrow>
-          <ListItemButton
-            onClick={toggleTheme}
-            sx={{
-              borderRadius: 2,
-              mx: 0.5,
-              minHeight: 48,
-              justifyContent: sidebarExpanded ? 'flex-start' : 'center',
-              px: sidebarExpanded ? 2 : 1,
-              '&:hover': {
-                backgroundColor: 'rgba(255,255,255,0.15)',
-              },
-            }}
-          >
-            <ListItemIcon
-              sx={{
-                color: 'white',
-                minWidth: sidebarExpanded ? 40 : 'auto',
-                justifyContent: 'center',
-              }}
-            >
+        {/* Theme Toggle with Animated Toggler */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+            px: sidebarExpanded ? 2 : 0,
+            py: 1,
+            gap: 1.5,
+          }}
+        >
+          <AnimatedThemeToggler
+            isDark={mode === 'dark'}
+            onToggle={toggleTheme}
+            size={36}
+          />
+          <AnimatePresence mode="wait">
+            {sidebarExpanded && (
               <motion.div
-                whileHover={{ scale: 1.2, rotate: 180 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
               >
-                {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-              </motion.div>
-            </ListItemIcon>
-            
-            <AnimatePresence mode="wait">
-              {sidebarExpanded && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2 }}
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'white', whiteSpace: 'nowrap' }}
                 >
-                  <ListItemText
-                    primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                    sx={{ '& .MuiTypography-root': { whiteSpace: 'nowrap' } }}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </ListItemButton>
-        </Tooltip>
+                  {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </Typography>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Box>
 
         {/* Logout */}
         <Tooltip title={!sidebarExpanded ? 'Logout' : ''} placement="right" arrow>
@@ -555,83 +541,45 @@ const MainLayout = () => {
           }),
         }}
       >
-        {/* Camera Dock */}
+        {/* Camera Dock - Just Camera Icon */}
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
           style={{ pointerEvents: 'auto' }}
         >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              px: 3,
-              py: 1.5,
-              borderRadius: 6,
-              backdropFilter: 'blur(20px)',
-              background: theme.palette.mode === 'dark'
-                ? 'rgba(30, 30, 50, 0.9)'
-                : 'rgba(255, 255, 255, 0.9)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-              border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
-            }}
+          <motion.div
+            whileHover={{ scale: 1.15, rotate: 5 }}
+            whileTap={{ scale: 0.9 }}
           >
-            <Typography
-              variant="body2"
+            <Fab
+              onClick={handleCameraClick}
               sx={{
-                fontWeight: 500,
-                color: theme.palette.text.secondary,
-                display: { xs: 'none', sm: 'block' },
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                width: 64,
+                height: 64,
+                boxShadow: '0 8px 32px rgba(102, 126, 234, 0.5)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%)',
+                  boxShadow: '0 12px 40px rgba(102, 126, 234, 0.6)',
+                },
               }}
             >
-              Scan your meal
-            </Typography>
-            
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Fab
-                onClick={handleCameraClick}
-                sx={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  width: 64,
-                  height: 64,
-                  boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%)',
-                  },
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  ease: 'easeInOut'
                 }}
               >
-                <motion.div
-                  animate={{ 
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{ 
-                    duration: 2, 
-                    repeat: Infinity,
-                    ease: 'easeInOut'
-                  }}
-                >
-                  <CameraIcon sx={{ fontSize: 30 }} />
-                </motion.div>
-              </Fab>
-            </motion.div>
-            
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 500,
-                color: theme.palette.primary.main,
-                display: { xs: 'none', sm: 'block' },
-              }}
-            >
-              AI-Powered
-            </Typography>
-          </Box>
+                <CameraIcon sx={{ fontSize: 32 }} />
+              </motion.div>
+            </Fab>
+          </motion.div>
         </motion.div>
       </Box>
 

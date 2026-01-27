@@ -46,6 +46,7 @@ import {
   BlurFade, 
   NumberTicker, 
   BorderBeam,
+  AnimatedCircularProgressBar,
 } from '../../components/ui/MagicUI';
 import { calculateStreak, getAchievements, getMacroBalance, getBalanceRecommendation } from '../../utils/streakUtils';
 import { getSmartSuggestions, getMotivationalQuote, getTimeBasedGreeting } from '../../utils/smartSuggestions';
@@ -91,10 +92,10 @@ const Dashboard = () => {
 
   // Daily goals (can be from user settings)
   const goals = {
-    calories: 2000,
-    protein: 120,
-    carbs: 250,
-    fats: 65,
+    calories: user?.dailyGoal || 2000,
+    protein: user?.proteinGoal || 120,
+    carbs: user?.carbsGoal || 250,
+    fats: user?.fatsGoal || 65,
   };
 
   const getProgress = (current, goal) => Math.min((current / goal) * 100, 100);
@@ -312,23 +313,20 @@ const Dashboard = () => {
                 </Box>
               </Box>
               
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Chip 
-                  icon={<EmojiEvents sx={{ color: '#fbbf24 !important', fontSize: 16 }} />}
-                  label={`${Math.round(totalCaloriesProgress)}% Complete`}
-                  size="small" 
-                  sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.15)', 
-                    color: 'white',
-                    backdropFilter: 'blur(10px)',
-                    fontWeight: 600,
-                    '& .MuiChip-icon': { color: '#fbbf24' },
-                  }} 
-                />
-              </Box>
+              {/* Animated Circular Progress for overall calories */}
+              <AnimatedCircularProgressBar
+                value={totalCaloriesProgress}
+                max={100}
+                size={100}
+                strokeWidth={10}
+                gaugePrimaryColor="#fbbf24"
+                gaugeSecondaryColor="rgba(255,255,255,0.2)"
+                showValue={true}
+                label="Calories"
+              />
             </Box>
 
-            {/* Overall Progress Bar */}
+            {/* Overall Progress Details */}
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -848,10 +846,10 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Quick Actions Section */}
+      {/* Quick Actions Section with Bento Grid */}
       <BlurFade delay={0.8}>
         <Box sx={{ mt: { xs: 4, md: 6 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
             <LocalFireDepartment sx={{ fontSize: { xs: 24, sm: 28 }, color: '#f59e0b' }} />
             <Typography 
               variant="h5" 
@@ -864,71 +862,126 @@ const Dashboard = () => {
               Quick Actions
             </Typography>
           </Box>
-          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-            {[
-              { 
-                label: "Today's Meals", 
-                path: '/todays-meals', 
-                gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                icon: <Restaurant sx={{ fontSize: { xs: 32, sm: 40 } }} />,
-              },
-              { 
-                label: 'Set Goals', 
-                path: '/goals', 
-                gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                icon: <TrackChanges sx={{ fontSize: { xs: 32, sm: 40 } }} />,
-              },
-              { 
-                label: 'Analytics', 
-                path: '/analytics', 
-                gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                icon: <BarChart sx={{ fontSize: { xs: 32, sm: 40 } }} />,
-              },
-              { 
-                label: 'Scan Food', 
-                path: '/scan-food', 
-                gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                icon: <CameraAlt sx={{ fontSize: { xs: 32, sm: 40 } }} />,
-              },
-            ].map((action, index) => (
-              <Grid size={{ xs: 6, sm: 3 }} key={action.label}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 + index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -4 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Card
-                    onClick={() => navigate(action.path)}
-                    sx={{
-                      background: action.gradient,
-                      color: 'white',
-                      borderRadius: { xs: 2, md: 3 },
-                      cursor: 'pointer',
-                      transition: 'box-shadow 0.3s ease',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                      '&:hover': {
-                        boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ textAlign: 'center', py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 2 } }}>
-                      <Box sx={{ mb: 1 }}>
-                        {action.icon}
-                      </Box>
-                      <Typography 
-                        variant="body2" 
-                        fontWeight={600}
-                        sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}
-                      >
-                        {action.label}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </Grid>
-            ))}
+          <Grid container spacing={2}>
+            {/* Today's Meals */}
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Box
+                component={motion.div}
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/todays-meals')}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  background: isDark 
+                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%)'
+                    : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                  border: `1px solid ${isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.3)'}`,
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 24px rgba(16, 185, 129, 0.2)',
+                  },
+                }}
+              >
+                <Avatar sx={{ bgcolor: '#10b981', width: 48, height: 48, mx: 'auto', mb: 1.5 }}>
+                  <Restaurant />
+                </Avatar>
+                <Typography variant="body1" fontWeight={600}>Today's Meals</Typography>
+                <Typography variant="caption" color="text.secondary">{todaysMeals.length} logged</Typography>
+              </Box>
+            </Grid>
+
+            {/* Set Goals */}
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Box
+                component={motion.div}
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/goals')}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  background: isDark 
+                    ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.15) 100%)'
+                    : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                  border: `1px solid ${isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.3)'}`,
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 24px rgba(245, 158, 11, 0.2)',
+                  },
+                }}
+              >
+                <Avatar sx={{ bgcolor: '#f59e0b', width: 48, height: 48, mx: 'auto', mb: 1.5 }}>
+                  <TrackChanges />
+                </Avatar>
+                <Typography variant="body1" fontWeight={600}>Set Goals</Typography>
+                <Typography variant="caption" color="text.secondary">Customize targets</Typography>
+              </Box>
+            </Grid>
+
+            {/* Analytics */}
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Box
+                component={motion.div}
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/analytics')}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  background: isDark 
+                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(79, 70, 229, 0.15) 100%)'
+                    : 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                  border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.3)'}`,
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 24px rgba(99, 102, 241, 0.2)',
+                  },
+                }}
+              >
+                <Avatar sx={{ bgcolor: '#6366f1', width: 48, height: 48, mx: 'auto', mb: 1.5 }}>
+                  <BarChart />
+                </Avatar>
+                <Typography variant="body1" fontWeight={600}>Analytics</Typography>
+                <Typography variant="caption" color="text.secondary">View insights</Typography>
+              </Box>
+            </Grid>
+
+            {/* Scan Food */}
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Box
+                component={motion.div}
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/scan-food')}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  background: isDark 
+                    ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(219, 39, 119, 0.15) 100%)'
+                    : 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+                  border: `1px solid ${isDark ? 'rgba(236, 72, 153, 0.2)' : 'rgba(236, 72, 153, 0.3)'}`,
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 24px rgba(236, 72, 153, 0.2)',
+                  },
+                }}
+              >
+                <Avatar sx={{ bgcolor: '#ec4899', width: 48, height: 48, mx: 'auto', mb: 1.5 }}>
+                  <CameraAlt />
+                </Avatar>
+                <Typography variant="body1" fontWeight={600}>Scan Food</Typography>
+                <Typography variant="caption" color="text.secondary">AI powered</Typography>
+              </Box>
+            </Grid>
           </Grid>
         </Box>
       </BlurFade>
@@ -936,7 +989,7 @@ const Dashboard = () => {
       {/* NEW: Floating Action Button for Quick Access */}
       <SpeedDial
         ariaLabel="Quick actions speed dial"
-        sx={{ 
+        sx={{
           position: 'fixed', 
           bottom: { xs: 70, sm: 24 }, 
           right: { xs: 16, sm: 24 },

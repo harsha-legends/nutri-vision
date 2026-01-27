@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useMeals } from '../../context/MealsContext';
 import { gradients, chartColors } from '../../theme/theme';
+import { AnimatedCircularProgressBar } from '../../components/ui/MagicUI';
 
 const Goals = () => {
   const { user, updateUser } = useAuth();
@@ -30,6 +31,9 @@ const Goals = () => {
     fats: user?.fatsGoal || 65,
   });
   const [saved, setSaved] = useState(false);
+
+  // Check if goal is met
+  const isGoalMet = (current, goal) => current >= goal;
 
   const handleGoalChange = (name, value) => {
     setGoals(prev => ({ ...prev, [name]: value }));
@@ -94,8 +98,6 @@ const Goals = () => {
     return Math.min(progress, 100);
   };
 
-  const isGoalMet = (current, goal) => current >= goal;
-
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
       <motion.div
@@ -147,30 +149,43 @@ const Goals = () => {
                   }}
                 >
                   <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Icon sx={{ color: item.color, fontSize: 28 }} />
                         <Typography variant="h6" fontWeight={600}>
                           {item.label}
                         </Typography>
                       </Box>
-                      {goalMet && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 300 }}
-                        >
-                          <Chip
-                            icon={<CheckCircle />}
-                            label="Goal Met!"
-                            color="success"
-                            size="small"
-                          />
-                        </motion.div>
-                      )}
+                      {/* Animated Circular Progress */}
+                      <AnimatedCircularProgressBar
+                        value={progress}
+                        max={100}
+                        size={80}
+                        strokeWidth={8}
+                        gaugePrimaryColor={goalMet ? '#22c55e' : item.color}
+                        gaugeSecondaryColor={`${item.color}20`}
+                        showValue={true}
+                      />
                     </Box>
 
-                    {/* Progress */}
+                    {/* Goal Met Badge */}
+                    {goalMet && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300 }}
+                      >
+                        <Chip
+                          icon={<CheckCircle />}
+                          label="Goal Met!"
+                          color="success"
+                          size="small"
+                          sx={{ mb: 2 }}
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* Progress Details */}
                     <Box sx={{ mb: 3 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="body2" color="text.secondary">
@@ -184,12 +199,12 @@ const Goals = () => {
                         variant="determinate"
                         value={progress}
                         sx={{
-                          height: 12,
-                          borderRadius: 6,
+                          height: 8,
+                          borderRadius: 4,
                           bgcolor: 'grey.200',
                           '& .MuiLinearProgress-bar': {
                             bgcolor: goalMet ? 'success.main' : item.color,
-                            borderRadius: 6,
+                            borderRadius: 4,
                             transition: 'transform 0.5s ease-in-out',
                           },
                         }}

@@ -5,18 +5,16 @@ import {
   Typography,
   Card, 
   CardContent, 
-  CardActionArea,
   Chip,
   LinearProgress,
   useTheme,
   Avatar,
-  Skeleton,
   SpeedDial,
   SpeedDialAction,
   SpeedDialIcon,
   Divider,
 } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -24,7 +22,6 @@ import {
   FitnessCenter,
   Grain,
   WaterDrop,
-  ArrowForward,
   Restaurant,
   TrackChanges,
   BarChart,
@@ -41,7 +38,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveCo
 import { foodCategories, getAllFoods } from '../../data/foodsData';
 import { useMeals } from '../../context/MealsContext';
 import { useAuth } from '../../context/AuthContext';
-import { CategoryCardShimmer, StatsCardShimmer } from '../../components/ui/Shimmer';
+import { StatsCardShimmer } from '../../components/ui/Shimmer';
 import { 
   BlurFade, 
   NumberTicker, 
@@ -55,20 +52,32 @@ import MealTimeline from '../../components/dashboard/MealTimeline';
 import ActivityTimeline from '../../components/dashboard/ActivityTimeline';
 import MacroBalanceWidget from '../../components/dashboard/MacroBalanceWidget';
 
-// Category images mapping for realistic photos
-const categoryImages = {
-  veg: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&h=400&fit=crop',
-  nonVeg: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=600&h=400&fit=crop',
-  juices: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&h=400&fit=crop',
-  packed: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=600&h=400&fit=crop',
-};
-
-// Category icon components (fallback for when images fail)
-const categoryIcons = {
-  veg: '🥗',
-  nonVeg: '🍖',
-  juices: '🧃',
-  packed: '📦',
+// Multiple images per category for animated carousel
+const categoryImageSets = {
+  veg: [
+    'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&h=400&fit=crop',
+  ],
+  nonVeg: [
+    'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=600&h=400&fit=crop',
+  ],
+  juices: [
+    'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=600&h=400&fit=crop',
+  ],
+  packed: [
+    'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1571748982800-fa51082c2224?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=400&fit=crop',
+  ],
 };
 
 const Dashboard = () => {
@@ -79,8 +88,10 @@ const Dashboard = () => {
   const { user } = useAuth();
   const totals = getTodaysTotals();
   const [isLoading, setIsLoading] = useState(true);
-  const [imageLoaded, setImageLoaded] = useState({});
   const [fabOpen, setFabOpen] = useState(false);
+  
+  // Image carousel indices for each category
+  const [imageIndices, setImageIndices] = useState({ veg: 0, nonVeg: 0, juices: 0, packed: 0 });
 
   const categories = Object.values(foodCategories);
 
@@ -88,6 +99,27 @@ const Dashboard = () => {
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Image carousel effect - cycle through images for each category
+  useEffect(() => {
+    const intervals = [
+      { key: 'veg', delay: 3000 },
+      { key: 'nonVeg', delay: 3500 },
+      { key: 'juices', delay: 4000 },
+      { key: 'packed', delay: 4500 },
+    ];
+
+    const timers = intervals.map(({ key, delay }) => 
+      setInterval(() => {
+        setImageIndices(prev => ({
+          ...prev,
+          [key]: (prev[key] + 1) % 4, // 4 images per category
+        }));
+      }, delay)
+    );
+
+    return () => timers.forEach(clearInterval);
   }, []);
 
   // Daily goals (can be from user settings)
@@ -200,10 +232,6 @@ const Dashboard = () => {
       gradient: 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)',
     },
   ];
-
-  const handleImageLoad = (categoryId) => {
-    setImageLoaded(prev => ({ ...prev, [categoryId]: true }));
-  };
 
   return (
     <Box sx={{ 
@@ -479,144 +507,237 @@ const Dashboard = () => {
         </Box>
       </BlurFade>
       
-      <Grid container spacing={{ xs: 2, md: 3 }}>
-        <AnimatePresence>
+      {/* Food Categories Section - Custom Bento Grid */}
+      <BlurFade delay={0.35}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gridTemplateRows: { xs: 'repeat(2, 180px)', md: 'repeat(2, 220px)' },
+            gap: { xs: 2, md: 3 },
+            mt: 1,
+          }}
+        >
           {isLoading ? (
             Array.from({ length: 4 }).map((_, index) => (
-              <Grid size={{ xs: 6, sm: 6, md: 3 }} key={`cat-shimmer-${index}`}>
-                <CategoryCardShimmer />
-              </Grid>
+              <Box 
+                key={`cat-shimmer-${index}`}
+                sx={{ 
+                  borderRadius: '20px',
+                  bgcolor: isDark ? 'grey.800' : 'grey.200',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                }}
+              />
             ))
           ) : (
-            categories.map((category, index) => (
-              <Grid size={{ xs: 6, sm: 6, md: 3 }} key={category.id}>
-                <BlurFade delay={0.4 + index * 0.1}>
-                  <motion.div
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                  >
-                    <Card
-                      sx={{
-                        height: { xs: 200, sm: 240, md: 280 },
-                        borderRadius: { xs: 3, md: 4 },
-                        overflow: 'hidden',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        boxShadow: isDark 
-                          ? '0 10px 40px rgba(0,0,0,0.4)'
-                          : '0 10px 40px rgba(0,0,0,0.12)',
-                        transition: 'box-shadow 0.3s ease',
-                        '&:hover': {
-                          boxShadow: isDark
-                            ? '0 20px 60px rgba(0,0,0,0.6)'
-                            : '0 20px 60px rgba(0,0,0,0.2)',
-                        },
-                      }}
-                    >
-                      <CardActionArea
-                        onClick={() => navigate(`/food-category/${category.id}`)}
-                        sx={{ height: '100%', position: 'relative' }}
-                      >
-                        {/* Background Image with Skeleton */}
-                        <Box sx={{ position: 'absolute', inset: 0 }}>
-                          {!imageLoaded[category.id] && (
-                            <Skeleton 
-                              variant="rectangular" 
-                              width="100%" 
-                              height="100%" 
-                              animation="wave"
-                              sx={{ position: 'absolute', inset: 0 }}
-                            />
-                          )}
-                          <Box
-                            component="img"
-                            src={categoryImages[category.id]}
-                            alt={category.name}
-                            onLoad={() => handleImageLoad(category.id)}
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              handleImageLoad(category.id);
-                            }}
-                            sx={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              opacity: imageLoaded[category.id] ? 1 : 0,
-                              transition: 'opacity 0.3s ease',
-                            }}
-                          />
-                          {/* Gradient Overlay */}
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              inset: 0,
-                              background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)',
-                            }}
-                          />
-                        </Box>
-                        
-                        {/* Content Overlay */}
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            p: { xs: 2, md: 3 },
-                            color: 'white',
-                          }}
-                        >
-                          <Typography 
-                            variant="h6" 
-                            fontWeight={700} 
-                            gutterBottom
-                            sx={{ 
-                              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                              fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
-                            }}
-                          >
-                            {categoryIcons[category.id]} {category.name}
-                          </Typography>
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              opacity: 0.9, 
-                              mb: 1.5,
-                              textShadow: '0 1px 5px rgba(0,0,0,0.5)',
-                              fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' },
-                              display: { xs: 'none', sm: 'block' },
-                            }}
-                          >
-                            {category.description}
-                          </Typography>
-                          <Box 
-                            sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 0.5,
-                              color: 'rgba(255,255,255,0.9)',
-                            }}
-                          >
-                            <Typography 
-                              variant="button" 
-                              fontWeight={600}
-                              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.875rem' } }}
-                            >
-                              Explore
-                            </Typography>
-                            <ArrowForward sx={{ fontSize: { xs: 14, sm: 16, md: 18 } }} />
-                          </Box>
-                        </Box>
-                      </CardActionArea>
-                    </Card>
-                  </motion.div>
-                </BlurFade>
-              </Grid>
-            ))
+            <>
+              {/* Veg - Wide card */}
+              <Box
+                onClick={() => navigate(`/food-category/${categories[0]?.id}`)}
+                sx={{ 
+                  gridColumn: { xs: 'span 1', md: 'span 2' },
+                  gridRow: 'span 1',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.12)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.2)',
+                    '& .category-image': {
+                      transform: 'scale(1.1)',
+                    },
+                  },
+                }}
+              >
+                {/* Animated cycling images */}
+                {categoryImageSets.veg.map((src, idx) => (
+                  <Box
+                    key={`veg-img-${idx}`}
+                    className="category-image"
+                    component="img"
+                    src={src}
+                    alt={categories[0]?.name}
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: imageIndices.veg === idx ? 1 : 0,
+                      transition: 'opacity 1s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  />
+                ))}
+                <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)', zIndex: 1 }} />
+                <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: { xs: 2, md: 3 }, color: 'white', zIndex: 2 }}>
+                  <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1.1rem', md: '1.4rem' }, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                    {categories[0]?.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9, display: { xs: 'none', sm: 'block' }, mt: 0.5 }}>
+                    {categories[0]?.description}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Non-Veg - Tall card */}
+              <Box
+                onClick={() => navigate(`/food-category/${categories[1]?.id}`)}
+                sx={{ 
+                  gridColumn: 'span 1',
+                  gridRow: { xs: 'span 1', md: 'span 2' },
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.12)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.2)',
+                    '& .category-image': {
+                      transform: 'scale(1.1)',
+                    },
+                  },
+                }}
+              >
+                {/* Animated cycling images */}
+                {categoryImageSets.nonVeg.map((src, idx) => (
+                  <Box
+                    key={`nonveg-img-${idx}`}
+                    className="category-image"
+                    component="img"
+                    src={src}
+                    alt={categories[1]?.name}
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: imageIndices.nonVeg === idx ? 1 : 0,
+                      transition: 'opacity 1s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  />
+                ))}
+                <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)', zIndex: 1 }} />
+                <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: { xs: 2, md: 3 }, color: 'white', zIndex: 2 }}>
+                  <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1.1rem', md: '1.4rem' }, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                    {categories[1]?.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9, display: { xs: 'none', sm: 'block' }, mt: 0.5 }}>
+                    {categories[1]?.description}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Juices */}
+              <Box
+                onClick={() => navigate(`/food-category/${categories[2]?.id}`)}
+                sx={{ 
+                  gridColumn: 'span 1',
+                  gridRow: 'span 1',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.12)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.2)',
+                    '& .category-image': {
+                      transform: 'scale(1.1)',
+                    },
+                  },
+                }}
+              >
+                {/* Animated cycling images */}
+                {categoryImageSets.juices.map((src, idx) => (
+                  <Box
+                    key={`juices-img-${idx}`}
+                    className="category-image"
+                    component="img"
+                    src={src}
+                    alt={categories[2]?.name}
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: imageIndices.juices === idx ? 1 : 0,
+                      transition: 'opacity 1s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  />
+                ))}
+                <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)', zIndex: 1 }} />
+                <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: { xs: 2, md: 3 }, color: 'white', zIndex: 2 }}>
+                  <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1.1rem', md: '1.4rem' }, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                    {categories[2]?.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9, display: { xs: 'none', sm: 'block' }, mt: 0.5 }}>
+                    {categories[2]?.description}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Packed */}
+              <Box
+                onClick={() => navigate(`/food-category/${categories[3]?.id}`)}
+                sx={{ 
+                  gridColumn: 'span 1',
+                  gridRow: 'span 1',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.12)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.2)',
+                    '& .category-image': {
+                      transform: 'scale(1.1)',
+                    },
+                  },
+                }}
+              >
+                {/* Animated cycling images */}
+                {categoryImageSets.packed.map((src, idx) => (
+                  <Box
+                    key={`packed-img-${idx}`}
+                    className="category-image"
+                    component="img"
+                    src={src}
+                    alt={categories[3]?.name}
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: imageIndices.packed === idx ? 1 : 0,
+                      transition: 'opacity 1s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  />
+                ))}
+                <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)', zIndex: 1 }} />
+                <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: { xs: 2, md: 3 }, color: 'white', zIndex: 2 }}>
+                  <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1.1rem', md: '1.4rem' }, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                    {categories[3]?.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9, display: { xs: 'none', sm: 'block' }, mt: 0.5 }}>
+                    {categories[3]?.description}
+                  </Typography>
+                </Box>
+              </Box>
+            </>
           )}
-        </AnimatePresence>
-      </Grid>
+        </Box>
+      </BlurFade>
 
       {/* NEW: Streak & Achievements Section */}
       <BlurFade delay={0.5}>

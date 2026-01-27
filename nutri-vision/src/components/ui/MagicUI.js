@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, keyframes, Typography } from '@mui/material';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Border Beam Animation - Magic UI inspired
 const beamAnimation = keyframes`
@@ -689,12 +689,12 @@ export const BentoGrid = ({ children, columns = 3, className, ...props }) => {
       sx={{
         display: 'grid',
         gridTemplateColumns: {
-          xs: '1fr',
+          xs: 'repeat(2, 1fr)',
           sm: 'repeat(2, 1fr)',
           md: `repeat(${columns}, 1fr)`,
         },
-        gridAutoRows: 'minmax(180px, auto)',
-        gap: { xs: 2, sm: 2.5, md: 3 },
+        gridAutoRows: { xs: '140px', sm: '160px', md: '180px' },
+        gap: { xs: 1.5, sm: 2, md: 2.5 },
         ...props.sx,
       }}
       {...props}
@@ -826,3 +826,173 @@ export const BentoCard = ({
 };
 
 // All components are already exported individually above
+
+// Animated Image Carousel - for cycling through images with crossfade
+export const AnimatedImageCarousel = ({ images, interval = 3000, ...props }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (!images || images.length <= 1) return;
+    
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [images, interval]);
+
+  if (!images || images.length === 0) return null;
+
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        ...props.sx,
+      }}
+    >
+      <AnimatePresence mode="sync">
+        <motion.img
+          key={currentIndex}
+          src={images[currentIndex]}
+          alt=""
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          transition={{ duration: 1, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+      </AnimatePresence>
+    </Box>
+  );
+};
+
+// Bento Category Card - specialized for food categories with animated backgrounds
+export const BentoCategoryCard = ({
+  name,
+  description,
+  icon,
+  images,
+  imageInterval = 4000,
+  onClick,
+  ...props
+}) => {
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: '16px',
+        cursor: 'pointer',
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transform: 'translateY(0)',
+        '&:hover': {
+          transform: 'translateY(-6px)',
+          boxShadow: '0 20px 48px rgba(0,0,0,0.25)',
+          border: '1px solid rgba(255,255,255,0.2)',
+        },
+        '&:active': {
+          transform: 'translateY(-2px)',
+        },
+        ...props.sx,
+      }}
+      {...props}
+    >
+      {/* Animated Background Images */}
+      <AnimatedImageCarousel images={images} interval={imageInterval} />
+      
+      {/* Gradient Overlay */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.05) 100%)',
+          zIndex: 1,
+        }}
+      />
+      
+      {/* Content */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          p: { xs: 2, sm: 2.5, md: 3 },
+          zIndex: 2,
+          color: 'white',
+        }}
+      >
+        <Typography
+          variant="h6"
+          fontWeight={700}
+          sx={{
+            fontSize: { xs: '1rem', sm: '1.15rem', md: '1.3rem' },
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            mb: 0.5,
+          }}
+        >
+          {icon} {name}
+        </Typography>
+        
+        {description && (
+          <Typography
+            variant="body2"
+            sx={{
+              opacity: 0.9,
+              fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' },
+              textShadow: '0 1px 5px rgba(0,0,0,0.5)',
+              mb: 1,
+              display: { xs: 'none', sm: 'block' },
+            }}
+          >
+            {description}
+          </Typography>
+        )}
+        
+        <Box
+          component={motion.div}
+          initial={{ x: 0 }}
+          whileHover={{ x: 4 }}
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            color: 'rgba(255,255,255,0.9)',
+            fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' },
+            fontWeight: 600,
+          }}
+        >
+          Explore →
+        </Box>
+      </Box>
+      
+      {/* Shimmer effect on hover */}
+      <Box
+        component={motion.div}
+        initial={{ x: '-100%', opacity: 0 }}
+        whileHover={{ x: '100%', opacity: 0.3 }}
+        transition={{ duration: 0.6 }}
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+          zIndex: 3,
+          pointerEvents: 'none',
+        }}
+      />
+    </Box>
+  );
+};

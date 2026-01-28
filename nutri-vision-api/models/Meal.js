@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const mealSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  food: { type: mongoose.Schema.Types.ObjectId, ref: 'Food', required: true },
+  food: { type: mongoose.Schema.Types.ObjectId, ref: 'Food', required: false }, // Optional for local foods
   mealType: {
     type: String,
     required: true,
@@ -22,6 +22,13 @@ const mealSchema = new mongoose.Schema({
     fiber: { type: Number, default: 0 },
     sugar: { type: Number, default: 0 },
     sodium: { type: Number, default: 0 }
+  },
+  // For local foods that aren't in the database
+  localFoodInfo: {
+    id: { type: String },
+    name: { type: String },
+    category: { type: String },
+    image: { type: String }
   },
   notes: { type: String, default: '' },
   isScanned: { type: Boolean, default: false },

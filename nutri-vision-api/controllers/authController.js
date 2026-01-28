@@ -9,20 +9,43 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, username, email, password, gender, weight, height } = req.body;
+
+    // Accept either 'name' or 'username' from frontend
+    const userName = name || username;
+    
+    if (!userName) {
+      return res.status(400).json({ success: false, message: 'Name is required' });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ 
+      name: userName, 
+      email, 
+      password,
+      gender,
+      weight: weight ? parseFloat(weight) : undefined,
+      height: height ? parseFloat(height) : undefined
+    });
     const token = generateToken(user._id);
 
     res.status(201).json({
       success: true,
       token,
-      user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar }
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        username: user.name, // Also return as username for frontend compatibility
+        email: user.email, 
+        avatar: user.avatar,
+        gender: user.gender,
+        weight: user.weight,
+        height: user.height
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -46,9 +69,17 @@ exports.login = async (req, res) => {
       success: true,
       token,
       user: {
-        id: user._id, name: user.name, email: user.email, avatar: user.avatar,
-        phone: user.phone, gender: user.gender, height: user.height, weight: user.weight,
-        activityLevel: user.activityLevel, dietaryPreference: user.dietaryPreference
+        id: user._id, 
+        name: user.name, 
+        username: user.name, // For frontend compatibility
+        email: user.email, 
+        avatar: user.avatar,
+        phone: user.phone, 
+        gender: user.gender, 
+        height: user.height, 
+        weight: user.weight,
+        activityLevel: user.activityLevel, 
+        dietaryPreference: user.dietaryPreference
       }
     });
   } catch (error) {

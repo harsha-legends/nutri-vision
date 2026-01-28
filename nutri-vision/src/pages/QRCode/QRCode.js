@@ -29,7 +29,7 @@ const QRCodePage = () => {
   ];
 
   return (
-    <Box>
+    <Box sx={{ ml: 8, mt:8}}>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

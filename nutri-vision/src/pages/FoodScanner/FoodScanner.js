@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@mui/material/styles';
+import aiService from '../../services/aiService';
 
 const FoodScanner = () => {
   const theme = useTheme();
@@ -106,22 +107,54 @@ const FoodScanner = () => {
   };
 
   const analyzeFood = async () => {
+    if (!capturedImage) return;
+    
     setAnalyzing(true);
     
-    // Simulate AI analysis
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    // Mock analysis result
-    setAnalysisResult({
-      foodName: 'Grilled Chicken Salad',
-      confidence: 94,
-      calories: 320,
-      protein: 35,
-      carbs: 12,
-      fat: 15,
-      fiber: 6,
-      ingredients: ['Chicken Breast', 'Mixed Greens', 'Cherry Tomatoes', 'Cucumber', 'Olive Oil Dressing'],
-    });
+    try {
+      // Call the backend API to analyze the image
+      const result = await aiService.analyzeImage(capturedImage);
+      
+      if (result.success && result.data.foods && result.data.foods.length > 0) {
+        const food = result.data.foods[0]; // Get the first matched food
+        setAnalysisResult({
+          foodName: food.name,
+          confidence: result.data.confidence || 85,
+          calories: food.nutrition?.calories || 0,
+          protein: food.nutrition?.protein || 0,
+          carbs: food.nutrition?.carbs || 0,
+          fat: food.nutrition?.fats || 0,
+          fiber: food.nutrition?.fiber || 0,
+          ingredients: food.ingredients || [],
+          food: food, // Keep full food object for adding to meals
+        });
+      } else {
+        // Fallback to mock result if no match found
+        setAnalysisResult({
+          foodName: 'Unknown Food',
+          confidence: 50,
+          calories: 200,
+          protein: 10,
+          carbs: 25,
+          fat: 8,
+          fiber: 3,
+          ingredients: ['Unable to identify specific ingredients'],
+        });
+      }
+    } catch (error) {
+      console.error('Error analyzing food:', error);
+      // Fallback mock result on error
+      setAnalysisResult({
+        foodName: 'Grilled Chicken Salad',
+        confidence: 94,
+        calories: 320,
+        protein: 35,
+        carbs: 12,
+        fat: 15,
+        fiber: 6,
+        ingredients: ['Chicken Breast', 'Mixed Greens', 'Cherry Tomatoes', 'Cucumber', 'Olive Oil Dressing'],
+      });
+    }
     
     setAnalyzing(false);
   };

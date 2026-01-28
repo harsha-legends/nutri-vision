@@ -1,40 +1,93 @@
 const Meal = require('../models/Meal');
 const Food = require('../models/Food');
+const mongoose = require('mongoose');
 
 // @desc    Log a meal
 // @route   POST /api/meals
 exports.logMeal = async (req, res) => {
   try {
-    const { foodId, mealType, quantity = 1, servingSize, date, notes, isScanned, scannedImage } = req.body;
+    const { foodId, mealType, quantity = 1, servingSize, date, notes, isScanned, scannedImage, foodData } = req.body;
 
-    const food = await Food.findById(foodId);
-    if (!food) return res.status(404).json({ success: false, message: 'Food not found' });
+    let food = null;
+    let nutritionConsumed;
+    let mealData;
 
-    const multiplier = (quantity * (servingSize?.amount || 100)) / 100;
-    const nutritionConsumed = {
-      calories: Math.round(food.nutrition.calories * multiplier),
-      protein: Math.round(food.nutrition.protein * multiplier * 10) / 10,
-      carbohydrates: Math.round(food.nutrition.carbohydrates * multiplier * 10) / 10,
-      fat: Math.round(food.nutrition.fat * multiplier * 10) / 10,
-      fiber: Math.round(food.nutrition.fiber * multiplier * 10) / 10,
-      sugar: Math.round(food.nutrition.sugar * multiplier * 10) / 10,
-      sodium: Math.round(food.nutrition.sodium * multiplier)
-    };
+    // Check if foodId is a valid MongoDB ObjectId
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(foodId) && 
+                            (new mongoose.Types.ObjectId(foodId)).toString() === foodId;
 
-    const meal = await Meal.create({
-      user: req.user.id,
-      food: foodId,
-      mealType,
-      quantity,
-      servingSize: servingSize || food.servingSize,
-      date: date || new Date(),
-      nutritionConsumed,
-      notes,
-      isScanned,
-      scannedImage
-    });
+    if (isValidObjectId) {
+      // Try to find food in database
+      food = await Food.findById(foodId);
+    }
 
-    await meal.populate('food', 'name image category nutrition');
+    if (food) {
+      // Food found in database - calculate nutrition from database food
+      const multiplier = (quantity * (servingSize?.amount || 100)) / 100;
+      nutritionConsumed = {
+        calories: Math.round(food.nutrition.calories * multiplier),
+        protein: Math.round(food.nutrition.protein * multiplier * 10) / 10,
+        carbohydrates: Math.round(food.nutrition.carbohydrates * multiplier * 10) / 10,
+        fat: Math.round(food.nutrition.fat * multiplier * 10) / 10,
+        fiber: Math.round(food.nutrition.fiber * multiplier * 10) / 10,
+        sugar: Math.round(food.nutrition.sugar * multiplier * 10) / 10,
+        sodium: Math.round(food.nutrition.sodium * multiplier)
+      };
+
+      mealData = {
+        user: req.user.id,
+        food: foodId,
+        mealType,
+        quantity,
+        servingSize: servingSize || food.servingSize,
+        date: date || new Date(),
+        nutritionConsumed,
+        notes,
+        isScanned,
+        scannedImage
+      };
+    } else if (foodData) {
+      // Local food data provided - store nutrition directly
+      const nutrition = foodData.nutrition || {};
+      nutritionConsumed = {
+        calories: Math.round((nutrition.calories || 0) * quantity),
+        protein: Math.round((nutrition.protein || 0) * quantity * 10) / 10,
+        carbohydrates: Math.round((nutrition.carbs || nutrition.carbohydrates || 0) * quantity * 10) / 10,
+        fat: Math.round((nutrition.fats || nutrition.fat || 0) * quantity * 10) / 10,
+        fiber: Math.round((nutrition.fiber || 0) * quantity * 10) / 10,
+        sugar: Math.round((nutrition.sugar || 0) * quantity * 10) / 10,
+        sodium: Math.round((nutrition.sodium || 0) * quantity)
+      };
+
+      mealData = {
+        user: req.user.id,
+        food: null, // No database reference
+        mealType,
+        quantity,
+        servingSize: servingSize || foodData.servingSize || { amount: 100, unit: 'g' },
+        date: date || new Date(),
+        nutritionConsumed,
+        notes,
+        isScanned,
+        scannedImage,
+        // Store local food info in notes or a custom field
+        localFoodInfo: {
+          id: foodId,
+          name: foodData.name,
+          category: foodData.category,
+          image: foodData.image
+        }
+      };
+    } else {
+      return res.status(404).json({ success: false, message: 'Food not found. Please provide foodData for local foods.' });
+    }
+
+    const meal = await Meal.create(mealData);
+
+    if (food) {
+      await meal.populate('food', 'name image category nutrition');
+    }
+
     res.status(201).json({ success: true, data: meal });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

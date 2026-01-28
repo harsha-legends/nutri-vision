@@ -11,6 +11,7 @@ import {
 import { Send, SmartToy, Person } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import aiService from '../../services/aiService';
 
 const AIChat = () => {
   const { user } = useAuth();
@@ -306,24 +307,13 @@ Feel free to ask me anything about nutrition, and I'll do my best to help! What 
     setIsTyping(true);
 
     try {
-      // Call the backend AI API
-      const response = await fetch('http://localhost:5000/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userInput,
-          conversationHistory: messages.slice(-10), // Send last 10 messages for context
-        }),
-      });
-
-      const data = await response.json();
+      // Call the backend AI API using aiService
+      const result = await aiService.chat(userInput, messages.slice(-10));
 
       const botResponse = {
         id: Date.now() + 1,
         type: 'bot',
-        text: data.success ? data.data.message : 'Sorry, I had trouble processing that. Please try again!',
+        text: result.success ? result.data.message : 'Sorry, I had trouble processing that. Please try again!',
         timestamp: new Date(),
       };
 

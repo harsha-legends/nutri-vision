@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import authService from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -14,71 +15,84 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = localStorage.getItem('nutriVisionUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  // Fetch user on mount if token exists
+  const fetchUser = useCallback(async () => {
+    try {
+      if (authService.isAuthenticated()) {
+        const storedUser = authService.getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+        }
+        // Optionally verify with server
+        try {
+          const response = await authService.getMe();
+          if (response.success && response.user) {
+            setUser(response.user);
+            localStorage.setItem('nutriVisionUser', JSON.stringify(response.user));
+          }
+        } catch {
+          // Token might be expired, keep stored user or clear
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
   const login = async (email, password) => {
-    // Simulate API call
-    const users = JSON.parse(localStorage.getItem('nutriVisionUsers') || '[]');
-    const foundUser = users.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('nutriVisionUser', JSON.stringify(userWithoutPassword));
-      return { success: true };
+    try {
+      const response = await authService.login(email, password);
+      if (response.success && response.user) {
+        setUser(response.user);
+        return { success: true };
+      }
+      return { success: false, error: response.message || 'Login failed' };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Login failed. Please try again.';
+      return { success: false, error: message };
     }
-    return { success: false, error: 'Invalid email or password' };
   };
 
   const signup = async (userData) => {
-    // Simulate API call
-    const users = JSON.parse(localStorage.getItem('nutriVisionUsers') || '[]');
-    
-    if (users.find(u => u.email === userData.email)) {
-      return { success: false, error: 'Email already exists' };
+    try {
+      const response = await authService.register(userData);
+      if (response.success && response.user) {
+        setUser(response.user);
+        return { success: true };
+      }
+      return { success: false, error: response.message || 'Registration failed' };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Registration failed. Please try again.';
+      return { success: false, error: message };
     }
-    
-    const newUser = {
-      id: Date.now().toString(),
-      ...userData,
-      createdAt: new Date().toISOString(),
-      profilePicture: null,
-      dailyGoal: 2000,
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('nutriVisionUsers', JSON.stringify(users));
-    
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('nutriVisionUser', JSON.stringify(userWithoutPassword));
-    
-    return { success: true };
   };
 
   const logout = () => {
+    authService.logout();
     setUser(null);
-    localStorage.removeItem('nutriVisionUser');
   };
 
-  const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem('nutriVisionUser', JSON.stringify(updatedUser));
-    
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem('nutriVisionUsers') || '[]');
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...updates };
-      localStorage.setItem('nutriVisionUsers', JSON.stringify(users));
+  const updateUser = async (updates) => {
+    try {
+      const response = await authService.updateProfile(updates);
+      if (response.success && response.user) {
+        setUser(response.user);
+        return { success: true };
+      }
+      return { success: false, error: response.message || 'Update failed' };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Update failed. Please try again.';
+      // Still update locally for optimistic UI
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('nutriVisionUser', JSON.stringify(updatedUser));
+      return { success: false, error: message };
     }
   };
 

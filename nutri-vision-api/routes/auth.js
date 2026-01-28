@@ -30,7 +30,8 @@ const router = express.Router();
  *         description: Validation error or user exists
  */
 router.post('/register', [
-  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('name').optional(),
+  body('username').optional(),
   body('email').isEmail().withMessage('Please enter a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ], validate, register);

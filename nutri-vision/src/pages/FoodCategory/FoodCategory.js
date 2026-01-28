@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -19,6 +19,7 @@ import { nonVegFoodsDatabase, nonVegSubCategories } from '../../data/nonVegFoods
 import { useMeals } from '../../context/MealsContext';
 import { ShimmerGrid } from '../../components/ui/Shimmer';
 import QuantityButton from '../../components/ui/QuantityButton';
+import foodService from '../../services/foodService';
 
 // Category hero images
 const categoryHeroImages = {
@@ -76,6 +77,7 @@ const FoodCategory = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [apiFoods, setApiFoods] = useState(null); // Foods from API
   const filterScrollRef = useRef(null);
   
   const category = foodCategories[categoryId];
@@ -101,16 +103,33 @@ const FoodCategory = () => {
     }
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(timer);
+  // Fetch foods from API
+  const fetchFoodsFromAPI = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await foodService.getFoods({ category: categoryId });
+      if (result.success && result.data.length > 0) {
+        setApiFoods(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching foods from API:', error);
+      // Fall back to local data
+    } finally {
+      setIsLoading(false);
+    }
   }, [categoryId]);
+
+  useEffect(() => {
+    fetchFoodsFromAPI();
+  }, [fetchFoodsFromAPI]);
   
+  // Use API foods if available, otherwise fall back to local data
   const categoryFoods = useMemo(() => {
+    if (apiFoods && apiFoods.length > 0) return apiFoods;
     if (categoryId === 'veg') return vegFoodsDatabase;
     if (categoryId === 'nonVeg') return nonVegFoodsDatabase;
     return foods[categoryId] || [];
-  }, [categoryId]);
+  }, [categoryId, apiFoods]);
 
   const subCategoriesData = useMemo(() => {
     if (isVegCategory) return vegSubCategories || {};

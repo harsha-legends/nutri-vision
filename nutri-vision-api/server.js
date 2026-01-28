@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 // Load env vars
 dotenv.config();
@@ -11,6 +13,16 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'NutriVision API Docs',
+}));
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
@@ -28,7 +40,11 @@ app.use('/api/foods', require('./routes/foods'));
 app.use('/api/meals', require('./routes/meals'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/analytics', require('./routes/analytics'));
+
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/water', require('./routes/water'));
+app.use('/api/streak', require('./routes/streak'));
+app.use('/api/image', require('./routes/image'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -40,7 +56,7 @@ app.get('/api', (req, res) => {
   res.json({
     success: true,
     message: 'NutriVision API v1.0',
-    endpoints: {
+  endpoints: {
       auth: {
         'POST /api/auth/register': 'Register a new user',
         'POST /api/auth/login': 'Login user',
@@ -77,6 +93,16 @@ app.get('/api', (req, res) => {
         'GET /api/analytics/monthly': 'Get monthly analytics (protected)',
         'GET /api/analytics/goals': 'Get goal progress (protected)',
         'GET /api/analytics/macros': 'Get macro breakdown (protected)'
+      },
+      water: {
+        'POST /api/water': 'Log or update water intake (protected)',
+        'GET /api/water': 'Get water logs (protected)'
+      },
+      streak: {
+        'GET /api/streak': 'Get user meal streaks (protected)'
+      },
+      image: {
+        'POST /api/image/analyze': 'Analyze food image (protected, mock)'
       }
     }
   });
@@ -95,5 +121,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 NutriVision API running on port ${PORT}`);
   console.log(`📚 API Docs: http://localhost:${PORT}/api`);
-  console.log(`💚 Health: http://localhost:${PORT}/api/health`);
+  console.log(`� Swagger UI: http://localhost:${PORT}/api-docs`);
+  console.log(`�💚 Health: http://localhost:${PORT}/api-health`);
 });

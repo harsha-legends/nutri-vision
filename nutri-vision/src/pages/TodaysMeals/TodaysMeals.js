@@ -818,27 +818,31 @@ const TodaysMeals = () => {
                 ))}
               </Grid>
 
-              <Divider sx={{ my: 2 }} />
+              {selectedFood.healthImpact && (
+                <>
+                  <Divider sx={{ my: 2 }} />
 
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                Health Impact
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip
-                  label={`Blood Sugar: ${selectedFood.healthImpact.bloodSugar}`}
-                  color={selectedFood.healthImpact.bloodSugar === 'low' ? 'success' : selectedFood.healthImpact.bloodSugar === 'medium' ? 'warning' : 'error'}
-                  variant="outlined"
-                />
-                <Chip
-                  label={`Blood Pressure: ${selectedFood.healthImpact.bloodPressure}`}
-                  color={selectedFood.healthImpact.bloodPressure === 'low' ? 'success' : selectedFood.healthImpact.bloodPressure === 'medium' ? 'warning' : 'error'}
-                  variant="outlined"
-                />
-                <Chip
-                  label={`Risk: ${selectedFood.healthImpact.riskLevel}`}
-                  color={selectedFood.healthImpact.riskLevel === 'low' ? 'success' : selectedFood.healthImpact.riskLevel === 'medium' ? 'warning' : 'error'}
-                />
-              </Box>
+                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    Health Impact
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip
+                      label={`Blood Sugar: ${selectedFood.healthImpact.bloodSugar}`}
+                      color={selectedFood.healthImpact.bloodSugar === 'low' ? 'success' : selectedFood.healthImpact.bloodSugar === 'medium' ? 'warning' : 'error'}
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`Blood Pressure: ${selectedFood.healthImpact.bloodPressure}`}
+                      color={selectedFood.healthImpact.bloodPressure === 'low' ? 'success' : selectedFood.healthImpact.bloodPressure === 'medium' ? 'warning' : 'error'}
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`Risk: ${selectedFood.healthImpact.riskLevel}`}
+                      color={selectedFood.healthImpact.riskLevel === 'low' ? 'success' : selectedFood.healthImpact.riskLevel === 'medium' ? 'warning' : 'error'}
+                    />
+                  </Box>
+                </>
+              )}
 
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
                 <QuantityButton

@@ -33,6 +33,8 @@ import {
   ShowChart,
   DonutLarge,
   Explore,
+  QrCodeScanner,
+  EventNote,
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { foodCategories, getAllFoods } from '../../data/foodsData';
@@ -51,6 +53,10 @@ import StreakBadge from '../../components/dashboard/StreakBadge';
 import MealTimeline from '../../components/dashboard/MealTimeline';
 import ActivityTimeline from '../../components/dashboard/ActivityTimeline';
 import MacroBalanceWidget from '../../components/dashboard/MacroBalanceWidget';
+import WaterTracker from '../../components/dashboard/WaterTracker';
+import FavoriteFoods from '../../components/dashboard/FavoriteFoods';
+import WeeklyReport from '../../components/dashboard/WeeklyReport';
+import MealTemplates from '../../components/dashboard/MealTemplates';
 
 // Multiple images per category for animated carousel
 const categoryImageSets = {
@@ -167,8 +173,10 @@ const Dashboard = () => {
 
   // FAB actions
   const fabActions = [
-    { icon: <CameraAlt />, name: 'Scan Food', action: () => navigate('/food-scanner') },
+    { icon: <CameraAlt />, name: 'Scan Food', action: () => navigate('/scan-food') },
+    { icon: <QrCodeScanner />, name: 'Scan Barcode', action: () => navigate('/barcode-scanner') },
     { icon: <Restaurant />, name: 'Add Meal', action: () => navigate('/todays-meals') },
+    { icon: <EventNote />, name: 'Meal Planner', action: () => navigate('/meal-planner') },
     { icon: <BarChart />, name: 'View Analytics', action: () => navigate('/analytics') },
     { icon: <TrackChanges />, name: 'Set Goals', action: () => navigate('/goals') },
   ];
@@ -952,17 +960,42 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* NEW: Macro Balance & Activity Feed Row */}
+      {/* NEW: Macro Balance, Water Tracker & Activity Feed Row */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <BlurFade delay={0.75}>
             <MacroBalanceWidget totals={totals} balance={macroBalance} recommendations={[balanceRecommendation]} />
           </BlurFade>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <BlurFade delay={0.78}>
+            <WaterTracker goal={8} />
+          </BlurFade>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 4 }}>
           <BlurFade delay={0.8}>
             <ActivityTimeline activities={activities} />
+          </BlurFade>
+        </Grid>
+      </Grid>
+
+      {/* Favorite Foods & Weekly Report Row */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <BlurFade delay={0.85}>
+            <FavoriteFoods />
+          </BlurFade>
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <BlurFade delay={0.88}>
+            <MealTemplates />
+          </BlurFade>
+        </Grid>
+        <Grid size={{ xs: 12, md: 3 }}>
+          <BlurFade delay={0.9}>
+            <WeeklyReport />
           </BlurFade>
         </Grid>
       </Grid>

@@ -21,6 +21,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Button,
+  Menu,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   Search,
@@ -33,6 +37,8 @@ import {
   WaterDrop,
   Spa,
   Cake,
+  Download,
+  TableChart,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -68,8 +74,56 @@ const Analytics = () => {
   const [selectedComponents, setSelectedComponents] = useState(['calories', 'protein', 'carbs', 'fats']);
   const [timeRange, setTimeRange] = useState(7);
   const [chartType, setChartType] = useState('bar');
+  const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
 
   const historicalData = useMemo(() => getHistoricalData(timeRange), [getHistoricalData, timeRange]);
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = ['Date', 'Calories', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Fiber (g)', 'Sugar (g)'];
+    const rows = historicalData.map(day => [
+      day.fullDate,
+      day.calories,
+      day.protein,
+      day.carbs,
+      day.fats,
+      day.fiber,
+      day.sugar,
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `nutrition-data-${timeRange}days-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setExportMenuAnchor(null);
+  };
+
+  // Export to JSON
+  const exportToJSON = () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      timeRange: `${timeRange} days`,
+      summary: stats,
+      dailyData: historicalData,
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `nutrition-data-${timeRange}days-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setExportMenuAnchor(null);
+  };
 
   // Filter components based on search
   const filteredComponents = useMemo(() => {
@@ -117,12 +171,47 @@ const Analytics = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          📊 Nutrition Analytics
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Track and analyze your nutrition intake over time
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Box>
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              📊 Nutrition Analytics
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Track and analyze your nutrition intake over time
+            </Typography>
+          </Box>
+          
+          {/* Export Button */}
+          <Box>
+            <Button
+              variant="outlined"
+              startIcon={<Download />}
+              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+              sx={{ mr: 1 }}
+            >
+              Export
+            </Button>
+            <Menu
+              anchorEl={exportMenuAnchor}
+              open={Boolean(exportMenuAnchor)}
+              onClose={() => setExportMenuAnchor(null)}
+              PaperProps={{ sx: { borderRadius: 2, minWidth: 180 } }}
+            >
+              <MenuItem onClick={exportToCSV}>
+                <ListItemIcon>
+                  <TableChart fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Export as CSV</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={exportToJSON}>
+                <ListItemIcon>
+                  <Download fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Export as JSON</ListItemText>
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Box>
       </motion.div>
 
       {/* Search and Filters */}

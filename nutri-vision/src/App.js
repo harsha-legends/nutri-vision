@@ -18,6 +18,10 @@ import Analytics from './pages/Analytics/Analytics';
 import AIChat from './pages/AIChat/AIChat';
 import QRCodePage from './pages/QRCode/QRCode';
 import FoodScanner from './pages/FoodScanner/FoodScanner';
+import BarcodeScanner from './pages/BarcodeScanner/BarcodeScanner';
+import MealPlanner from './pages/MealPlanner/MealPlanner';
+import NotificationSettings from './pages/Notifications/NotificationSettings';
+import ProgressPhotos from './pages/ProgressPhotos/ProgressPhotos';
 import './App.css';
 
 function App() {
@@ -52,6 +56,10 @@ function App() {
                 <Route path="ai-chat" element={<AIChat />} />
                 <Route path="qr-code" element={<QRCodePage />} />
                 <Route path="scan-food" element={<FoodScanner />} />
+                <Route path="barcode-scanner" element={<BarcodeScanner />} />
+                <Route path="meal-planner" element={<MealPlanner />} />
+                <Route path="notifications" element={<NotificationSettings />} />
+                <Route path="progress-photos" element={<ProgressPhotos />} />
               </Route>
 
               {/* Fallback */}

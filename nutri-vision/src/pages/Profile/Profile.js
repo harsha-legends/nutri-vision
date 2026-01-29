@@ -15,14 +15,30 @@ import {
   Alert,
   Divider,
   IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemSecondaryAction,
 } from '@mui/material';
-import { Edit, Save, PhotoCamera } from '@mui/icons-material';
+import { 
+  Edit, 
+  Save, 
+  PhotoCamera,
+  Notifications,
+  PhotoLibrary,
+  EventNote,
+  ChevronRight,
+  QrCodeScanner,
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { gradients } from '../../theme/theme';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [formData, setFormData] = useState({
@@ -293,6 +309,46 @@ const Profile = () => {
                     </Box>
                   </Grid>
                 </Grid>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Quick Access Features */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card sx={{ mt: 3 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Features & Settings
+                </Typography>
+                <List disablePadding>
+                  {[
+                    { icon: <EventNote color="primary" />, title: 'Meal Planner', subtitle: 'Plan your weekly meals', path: '/meal-planner' },
+                    { icon: <QrCodeScanner color="secondary" />, title: 'Barcode Scanner', subtitle: 'Scan product barcodes', path: '/barcode-scanner' },
+                    { icon: <PhotoLibrary color="success" />, title: 'Progress Photos', subtitle: 'Track your transformation', path: '/progress-photos' },
+                    { icon: <Notifications color="warning" />, title: 'Notifications', subtitle: 'Manage reminders', path: '/notifications' },
+                  ].map((item, index) => (
+                    <ListItem
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      sx={{
+                        borderRadius: 2,
+                        mb: 1,
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                      }}
+                    >
+                      <ListItemIcon>{item.icon}</ListItemIcon>
+                      <ListItemText primary={item.title} secondary={item.subtitle} />
+                      <ListItemSecondaryAction>
+                        <ChevronRight color="action" />
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
               </CardContent>
             </Card>
           </motion.div>

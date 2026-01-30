@@ -6,8 +6,10 @@ import {
   Paper,
   Chip,
   Button,
-  LinearProgress,
+  CircularProgress,
   Stack,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
   CameraAlt,
@@ -28,7 +30,65 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { aiService } from '../../services';
 
+// Circular Progress Macro Component
+const CircularMacro = ({ label, value, max, color, icon, unit = 'g' }) => {
+  const percentage = Math.min((value / max) * 100, 100);
+  
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+      <Box sx={{ position: 'relative', display: 'inline-flex', mb: 1 }}>
+        {/* Background circle */}
+        <CircularProgress
+          variant="determinate"
+          value={100}
+          size={70}
+          thickness={4}
+          sx={{ color: alpha(color, 0.15) }}
+        />
+        {/* Foreground circle */}
+        <CircularProgress
+          variant="determinate"
+          value={percentage}
+          size={70}
+          thickness={4}
+          sx={{
+            color: color,
+            position: 'absolute',
+            left: 0,
+            '& .MuiCircularProgress-circle': {
+              strokeLinecap: 'round',
+            },
+          }}
+        />
+        {/* Center content */}
+        <Box
+          sx={{
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+            position: 'absolute',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {icon}
+        </Box>
+      </Box>
+      <Typography variant="h6" sx={{ fontWeight: 700, color: color, lineHeight: 1 }}>
+        {value}{unit}
+      </Typography>
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+        {label}
+      </Typography>
+    </Box>
+  );
+};
+
 const FoodScanner = () => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -181,36 +241,6 @@ const FoodScanner = () => {
       });
     }
   };
-
-  // Macro progress bar component
-  const MacroBar = ({ label, value, max, color, icon }) => (
-    <Box sx={{ mb: 2.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {icon}
-          <Typography variant="body2" sx={{ color: '#555', fontWeight: 500 }}>
-            {label}
-          </Typography>
-        </Box>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: '#1a1a2e' }}>
-          {value}g
-        </Typography>
-      </Box>
-      <LinearProgress
-        variant="determinate"
-        value={Math.min((value / max) * 100, 100)}
-        sx={{
-          height: 10,
-          borderRadius: 5,
-          backgroundColor: '#e8e8e8',
-          '& .MuiLinearProgress-bar': {
-            borderRadius: 5,
-            background: color,
-          },
-        }}
-      />
-    </Box>
-  );
 
   return (
     <Box
@@ -704,10 +734,12 @@ const FoodScanner = () => {
               sx={{
                 height: '100%',
                 overflowY: 'auto',
-                background: 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)',
+                background: isDark 
+                  ? `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)} 0%, ${theme.palette.background.default} 100%)`
+                  : 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)',
                 backdropFilter: 'blur(20px)',
-                borderLeft: '1px solid rgba(0,0,0,0.08)',
-                boxShadow: '-10px 0 40px rgba(0,0,0,0.15)',
+                borderLeft: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                boxShadow: isDark ? '-10px 0 40px rgba(0,0,0,0.4)' : '-10px 0 40px rgba(0,0,0,0.15)',
                 p: 3,
                 pt: 4,
               }}
@@ -719,22 +751,23 @@ const FoodScanner = () => {
                   position: 'absolute',
                   top: 16,
                   right: 16,
-                  backgroundColor: 'rgba(0,0,0,0.05)',
-                  color: '#333',
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  color: isDark ? 'white' : '#333',
                   '&:hover': {
-                    backgroundColor: 'rgba(0,0,0,0.1)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
                   },
                 }}
               >
                 <Close />
               </IconButton>
 
+              {/* Food Image */}
               {/* Food name and confidence */}
               <Box sx={{ mb: 3, pr: 5 }}>
                 <Typography
                   variant="h4"
                   sx={{
-                    color: '#1a1a2e',
+                    color: isDark ? 'white' : '#1a1a2e',
                     fontWeight: 700,
                     mb: 1,
                   }}
@@ -743,7 +776,7 @@ const FoodScanner = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CheckCircle sx={{ color: '#00C853', fontSize: 18 }} />
-                  <Typography sx={{ color: '#666' }}>
+                  <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#666' }}>
                     {Math.round(analysisResult.confidence * 100)}% confident
                   </Typography>
                 </Box>
@@ -751,10 +784,11 @@ const FoodScanner = () => {
                   <Chip
                     label={analysisResult.servingSize}
                     size="small"
+                    icon={<Restaurant sx={{ fontSize: 14 }} />}
                     sx={{
                       mt: 1,
-                      backgroundColor: '#f0f0f0',
-                      color: '#555',
+                      backgroundColor: isDark ? alpha('#fff', 0.1) : '#f0f0f0',
+                      color: isDark ? 'rgba(255,255,255,0.8)' : '#555',
                       fontWeight: 500,
                     }}
                   />
@@ -768,7 +802,9 @@ const FoodScanner = () => {
                   p: 3,
                   mb: 3,
                   borderRadius: 4,
-                  background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+                  background: isDark 
+                    ? 'linear-gradient(135deg, #D32F2F 0%, #F57C00 100%)'
+                    : 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
                   boxShadow: '0 8px 32px rgba(255,107,107,0.3)',
                 }}
               >
@@ -776,20 +812,20 @@ const FoodScanner = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box
                       sx={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 2,
+                        width: 56,
+                        height: 56,
+                        borderRadius: 3,
                         backgroundColor: 'rgba(255,255,255,0.25)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      <LocalFireDepartment sx={{ color: 'white', fontSize: 28 }} />
+                      <LocalFireDepartment sx={{ color: 'white', fontSize: 32 }} />
                     </Box>
                     <Box>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 14 }}>
-                        Calories
+                      <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: 500 }}>
+                        Total Calories
                       </Typography>
                       <Typography
                         variant="h3"
@@ -805,56 +841,65 @@ const FoodScanner = () => {
                 </Box>
               </Paper>
 
-              {/* Macronutrients */}
+              {/* Macronutrients with Circular Progress */}
               <Paper
                 elevation={0}
                 sx={{
                   p: 3,
                   mb: 3,
                   borderRadius: 4,
-                  backgroundColor: '#f8f9fa',
-                  border: '1px solid #e8e8e8',
+                  backgroundColor: isDark ? alpha('#fff', 0.05) : '#f8f9fa',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e8e8e8'}`,
                 }}
               >
                 <Typography
                   variant="subtitle2"
-                  sx={{ color: '#888', mb: 2.5, textTransform: 'uppercase', letterSpacing: 1, fontSize: 12 }}
+                  sx={{ 
+                    color: isDark ? 'rgba(255,255,255,0.5)' : '#888', 
+                    mb: 3, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: 1, 
+                    fontSize: 12,
+                    textAlign: 'center',
+                  }}
                 >
                   Macronutrients
                 </Typography>
 
-                <MacroBar
-                  label="Protein"
-                  value={analysisResult.protein}
-                  max={50}
-                  color="linear-gradient(90deg, #42A5F5, #1976D2)"
-                  icon={<FitnessCenter sx={{ color: '#1976D2', fontSize: 18 }} />}
-                />
-
-                <MacroBar
-                  label="Carbs"
-                  value={analysisResult.carbs}
-                  max={100}
-                  color="linear-gradient(90deg, #FFA726, #F57C00)"
-                  icon={<Grain sx={{ color: '#F57C00', fontSize: 18 }} />}
-                />
-
-                <MacroBar
-                  label="Fat"
-                  value={analysisResult.fat}
-                  max={50}
-                  color="linear-gradient(90deg, #AB47BC, #7B1FA2)"
-                  icon={<Opacity sx={{ color: '#7B1FA2', fontSize: 18 }} />}
-                />
+                <Box sx={{ display: 'flex', justifyContent: 'space-around', gap: 2 }}>
+                  <CircularMacro
+                    label="Protein"
+                    value={analysisResult.protein}
+                    max={50}
+                    color="#2196F3"
+                    icon={<FitnessCenter sx={{ color: '#2196F3', fontSize: 24 }} />}
+                  />
+                  <CircularMacro
+                    label="Carbs"
+                    value={analysisResult.carbs}
+                    max={100}
+                    color="#FF9800"
+                    icon={<Grain sx={{ color: '#FF9800', fontSize: 24 }} />}
+                  />
+                  <CircularMacro
+                    label="Fat"
+                    value={analysisResult.fat}
+                    max={50}
+                    color="#9C27B0"
+                    icon={<Opacity sx={{ color: '#9C27B0', fontSize: 24 }} />}
+                  />
+                </Box>
 
                 {analysisResult.fiber && (
-                  <MacroBar
-                    label="Fiber"
-                    value={analysisResult.fiber}
-                    max={30}
-                    color="linear-gradient(90deg, #66BB6A, #388E3C)"
-                    icon={<Grain sx={{ color: '#388E3C', fontSize: 18 }} />}
-                  />
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                    <CircularMacro
+                      label="Fiber"
+                      value={analysisResult.fiber}
+                      max={30}
+                      color="#4CAF50"
+                      icon={<Grain sx={{ color: '#4CAF50', fontSize: 24 }} />}
+                    />
+                  </Box>
                 )}
               </Paper>
 
@@ -866,8 +911,10 @@ const FoodScanner = () => {
                     p: 3,
                     mb: 3,
                     borderRadius: 4,
-                    background: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
-                    border: '1px solid #A5D6A7',
+                    background: isDark 
+                      ? alpha('#4CAF50', 0.15)
+                      : 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
+                    border: `1px solid ${isDark ? alpha('#4CAF50', 0.3) : '#A5D6A7'}`,
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -901,7 +948,7 @@ const FoodScanner = () => {
                         />
                         <Typography
                           variant="body2"
-                          sx={{ color: '#1B5E20', fontWeight: 500 }}
+                          sx={{ color: isDark ? '#81C784' : '#1B5E20', fontWeight: 500 }}
                         >
                           {suggestion}
                         </Typography>
@@ -944,15 +991,15 @@ const FoodScanner = () => {
                   sx={{
                     py: 1.5,
                     borderRadius: 3,
-                    borderColor: '#ddd',
+                    borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#ddd',
                     borderWidth: 2,
-                    color: '#555',
+                    color: isDark ? 'rgba(255,255,255,0.8)' : '#555',
                     fontWeight: 600,
                     fontSize: '1rem',
                     '&:hover': {
-                      borderColor: '#bbb',
+                      borderColor: isDark ? 'rgba(255,255,255,0.5)' : '#bbb',
                       borderWidth: 2,
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#f5f5f5',
                     },
                   }}
                 >

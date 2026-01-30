@@ -45,6 +45,7 @@ app.use('/api/ai', require('./routes/ai'));
 app.use('/api/water', require('./routes/water'));
 app.use('/api/streak', require('./routes/streak'));
 app.use('/api/image', require('./routes/image'));
+app.use('/api/templates', require('./routes/templates'));
 
 // Health check
 app.get('/api/health', (req, res) => {

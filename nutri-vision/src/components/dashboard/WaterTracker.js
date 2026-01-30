@@ -28,8 +28,7 @@ const WaterTracker = ({ goal = 8 }) => {
 
   const fetchWaterIntake = useCallback(async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const result = await waterService.getWater(today, today);
+      const result = await waterService.getTodayWater();
       if (result.success && result.data && result.data.length > 0) {
         setGlasses(result.data[0].glasses || 0);
       }
@@ -48,7 +47,7 @@ const WaterTracker = ({ goal = 8 }) => {
     setAnimatingGlass('add');
     
     try {
-      const result = await waterService.logWater(1);
+      const result = await waterService.addGlass();
       if (result.success) {
         setGlasses(prev => prev + 1);
       }
@@ -66,7 +65,7 @@ const WaterTracker = ({ goal = 8 }) => {
     setAnimatingGlass('remove');
     
     try {
-      const result = await waterService.logWater(-1);
+      const result = await waterService.removeGlass();
       if (result.success) {
         setGlasses(prev => Math.max(0, prev - 1));
       }

@@ -7,13 +7,19 @@ const aiService = {
     return response.data;
   },
 
-  // Analyze food image (mock)
-  analyzeImage: async (imageBase64, imageName = '') => {
+  // Analyze food image using Gemini Vision AI
+  analyzeImage: async (imageBase64, hint = '') => {
     const response = await api.post('/image/analyze', { 
-      image: imageBase64, 
-      imageName 
+      image: imageBase64,
+      hint: hint,
     });
-    return response.data;
+    
+    // The backend now returns data directly in the expected format
+    if (response.data.success) {
+      return response.data.data;
+    }
+    
+    throw new Error(response.data.message || 'Failed to analyze image');
   },
 };
 

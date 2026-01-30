@@ -9,3 +9,4 @@ export { default as waterService } from './waterService';
 export { default as streakService } from './streakService';
 export { default as aiService } from './aiService';
 export { default as templateService } from './templateService';
+export { default as scanHistoryService } from './scanHistoryService';

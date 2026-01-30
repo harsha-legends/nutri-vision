@@ -46,6 +46,7 @@ app.use('/api/water', require('./routes/water'));
 app.use('/api/streak', require('./routes/streak'));
 app.use('/api/image', require('./routes/image'));
 app.use('/api/templates', require('./routes/templates'));
+app.use('/api/scan-history', require('./routes/scanHistory'));
 
 // Health check
 app.get('/api/health', (req, res) => {

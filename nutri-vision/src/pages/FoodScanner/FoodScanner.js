@@ -6,10 +6,24 @@ import {
   Paper,
   Chip,
   Button,
-  CircularProgress,
   Stack,
   useTheme,
   alpha,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Snackbar,
+  Alert,
+  Grid,
+  LinearProgress,
+  useMediaQuery,
 } from '@mui/material';
 import {
   CameraAlt,
@@ -25,71 +39,28 @@ import {
   CheckCircle,
   TipsAndUpdates,
   ArrowBack,
+  Refresh,
+  FreeBreakfast,
+  LunchDining,
+  DinnerDining,
+  Icecream,
+  Edit,
+  Category,
+  Favorite,
+  Science,
+  WaterDrop,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { aiService } from '../../services';
-
-// Circular Progress Macro Component
-const CircularMacro = ({ label, value, max, color, icon, unit = 'g' }) => {
-  const percentage = Math.min((value / max) * 100, 100);
-  
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-      <Box sx={{ position: 'relative', display: 'inline-flex', mb: 1 }}>
-        {/* Background circle */}
-        <CircularProgress
-          variant="determinate"
-          value={100}
-          size={70}
-          thickness={4}
-          sx={{ color: alpha(color, 0.15) }}
-        />
-        {/* Foreground circle */}
-        <CircularProgress
-          variant="determinate"
-          value={percentage}
-          size={70}
-          thickness={4}
-          sx={{
-            color: color,
-            position: 'absolute',
-            left: 0,
-            '& .MuiCircularProgress-circle': {
-              strokeLinecap: 'round',
-            },
-          }}
-        />
-        {/* Center content */}
-        <Box
-          sx={{
-            top: 0,
-            left: 0,
-            bottom: 0,
-            right: 0,
-            position: 'absolute',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {icon}
-        </Box>
-      </Box>
-      <Typography variant="h6" sx={{ fontWeight: 700, color: color, lineHeight: 1 }}>
-        {value}{unit}
-      </Typography>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-        {label}
-      </Typography>
-    </Box>
-  );
-};
+import { aiService, scanHistoryService } from '../../services';
+import { useMeals } from '../../context/MealsContext';
 
 const FoodScanner = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
+  const { addMeal } = useMeals();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -102,6 +73,19 @@ const FoodScanner = () => {
   const [facingMode, setFacingMode] = useState('environment');
   const [error, setError] = useState(null);
   const [showPanel, setShowPanel] = useState(false);
+  
+  // New states for improvements
+  const [reanalyzeHint, setReanalyzeHint] = useState('');
+  const [mealTypeDialog, setMealTypeDialog] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Meal type options
+  const mealTypes = [
+    { type: 'breakfast', label: 'Breakfast', icon: <FreeBreakfast />, color: '#f59e0b' },
+    { type: 'lunch', label: 'Lunch', icon: <LunchDining />, color: '#22c55e' },
+    { type: 'dinner', label: 'Dinner', icon: <DinnerDining />, color: '#8b5cf6' },
+    { type: 'snack', label: 'Snack', icon: <Icecream />, color: '#ec4899' },
+  ];
 
   // Cleanup camera on unmount
   useEffect(() => {
@@ -180,14 +164,26 @@ const FoodScanner = () => {
     }
   }, []);
 
-  const analyzeFood = async (imageData) => {
+  const analyzeFood = async (imageData, hint = '') => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
     setShowPanel(false);
 
     try {
-      const response = await aiService.analyzeImage(imageData);
+      const response = await aiService.analyzeImage(imageData, hint);
       setAnalysisResult(response);
+      
+      // Save to scan history
+      try {
+        await scanHistoryService.saveScan({
+          image: imageData,
+          analysis: response,
+          hint: hint || undefined,
+        });
+      } catch (saveErr) {
+        console.error('Failed to save scan to history:', saveErr);
+        // Don't show error to user - saving to history is not critical
+      }
     } catch (err) {
       console.error('Analysis error:', err);
       // Fallback demo data
@@ -211,6 +207,13 @@ const FoodScanner = () => {
     }
   };
 
+  // Re-analyze with optional hint
+  const handleReanalyze = useCallback(() => {
+    if (capturedImage) {
+      analyzeFood(capturedImage, reanalyzeHint);
+    }
+  }, [capturedImage, reanalyzeHint]);
+
   const flipCamera = useCallback(() => {
     setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
     if (isCameraActive) {
@@ -224,22 +227,61 @@ const FoodScanner = () => {
     setAnalysisResult(null);
     setShowPanel(false);
     setError(null);
+    setReanalyzeHint('');
   }, []);
 
+  // Open meal type selection dialog
   const addToMeal = () => {
     if (analysisResult) {
-      navigate('/todays-meals', { 
-        state: { 
-          addFood: {
-            name: analysisResult.name,
-            calories: analysisResult.calories,
-            protein: analysisResult.protein,
-            carbs: analysisResult.carbs,
-            fat: analysisResult.fat,
-          }
-        }
-      });
+      setMealTypeDialog(true);
     }
+  };
+
+  // Handle meal type selection
+  const handleMealTypeSelect = async (mealType) => {
+    if (analysisResult) {
+      try {
+        // Format food data as expected by MealsContext
+        const foodData = {
+          id: `scanned-${Date.now()}`,
+          name: analysisResult.name,
+          category: analysisResult.foodCategory || 'Scanned Food',
+          servingSize: analysisResult.servingSize || '1 serving',
+          nutrition: {
+            calories: analysisResult.calories || 0,
+            protein: analysisResult.protein || 0,
+            carbohydrates: analysisResult.carbs || 0,
+            fat: analysisResult.fat || 0,
+            fiber: analysisResult.fiber || 0,
+            sugar: analysisResult.sugar || 0,
+          },
+        };
+        
+        const result = await addMeal(foodData, mealType, 1);
+        setMealTypeDialog(false);
+        
+        if (result.success) {
+          setSnackbar({
+            open: true,
+            message: `${analysisResult.name} added to ${mealType}!`,
+            severity: 'success',
+          });
+        } else {
+          throw new Error(result.error || 'Failed to add meal');
+        }
+      } catch (err) {
+        console.error('Error adding to meal:', err);
+        setSnackbar({
+          open: true,
+          message: err.message || 'Failed to add food to meal',
+          severity: 'error',
+        });
+      }
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   return (
@@ -688,59 +730,86 @@ const FoodScanner = () => {
         )}
       </AnimatePresence>
 
-      {/* Gradient Overlay - appears when results show */}
+      {/* Dark Overlay - appears when results show */}
       <AnimatePresence>
         {showPanel && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.3 }}
+            onClick={resetScanner}
             style={{
               position: 'fixed',
               top: 0,
+              left: 0,
               right: 0,
               bottom: 0,
-              width: '70%',
-              background: 'linear-gradient(to left, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 50%, transparent 100%)',
-              zIndex: 50,
-              pointerEvents: 'none',
+              background: 'rgba(0,0,0,0.6)',
+              zIndex: 9998,
             }}
           />
         )}
       </AnimatePresence>
 
-      {/* Results Panel - Slides from Right */}
+      {/* Results Panel - Modern Responsive Bottom Sheet */}
       <AnimatePresence>
         {showPanel && analysisResult && (
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
+          <Box
+            component={motion.div}
+            initial={{ y: '100%', opacity: 0.8 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0.8 }}
+            transition={{ 
+              type: 'spring', 
+              damping: 28, 
+              stiffness: 300,
+              mass: 0.8,
+            }}
+            sx={{
               position: 'fixed',
-              top: 0,
+              left: 0,
               right: 0,
               bottom: 0,
-              width: '450px',
-              maxWidth: '90vw',
-              zIndex: 100,
+              height: { xs: '90vh', sm: '85vh', md: '80vh' },
+              maxHeight: '850px',
+              zIndex: 9999,
               display: 'flex',
               flexDirection: 'column',
+              borderTopLeftRadius: { xs: '24px', md: '32px' },
+              borderTopRightRadius: { xs: '24px', md: '32px' },
+              overflow: 'hidden',
+              background: isDark ? '#1a1a2e' : '#ffffff',
+              boxShadow: '0 -10px 60px rgba(0,0,0,0.4)',
             }}
           >
+            {/* Drag handle indicator */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 10,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 48,
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)',
+                zIndex: 101,
+              }}
+            />
             <Box
               sx={{
                 height: '100%',
                 overflowY: 'auto',
+                overflowX: 'hidden',
                 background: isDark 
                   ? `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)} 0%, ${theme.palette.background.default} 100%)`
                   : 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)',
                 backdropFilter: 'blur(20px)',
-                borderLeft: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
-                boxShadow: isDark ? '-10px 0 40px rgba(0,0,0,0.4)' : '-10px 0 40px rgba(0,0,0,0.15)',
-                p: 3,
+                borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                boxShadow: isDark ? '0 -10px 60px rgba(0,0,0,0.5)' : '0 -10px 60px rgba(0,0,0,0.2)',
+                px: isMobile ? 2 : 3,
+                py: 3,
                 pt: 4,
               }}
             >
@@ -753,6 +822,7 @@ const FoodScanner = () => {
                   right: 16,
                   backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                   color: isDark ? 'white' : '#333',
+                  zIndex: 102,
                   '&:hover': {
                     backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
                   },
@@ -761,46 +831,94 @@ const FoodScanner = () => {
                 <Close />
               </IconButton>
 
-              {/* Food Image */}
-              {/* Food name and confidence */}
+              {/* Header Section - Food Name & Quick Info */}
               <Box sx={{ mb: 3, pr: 5 }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    color: isDark ? 'white' : '#1a1a2e',
-                    fontWeight: 700,
-                    mb: 1,
-                  }}
-                >
-                  {analysisResult.name}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CheckCircle sx={{ color: '#00C853', fontSize: 18 }} />
-                  <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#666' }}>
-                    {Math.round(analysisResult.confidence * 100)}% confident
-                  </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: 1, minWidth: 200 }}>
+                    <Typography
+                      variant={isMobile ? 'h5' : 'h4'}
+                      sx={{
+                        color: isDark ? 'white' : '#1a1a2e',
+                        fontWeight: 700,
+                        mb: 1,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {analysisResult.name}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip
+                        icon={<CheckCircle sx={{ fontSize: 14 }} />}
+                        label={`${Math.round(analysisResult.confidence * 100)}% confident`}
+                        size="small"
+                        sx={{
+                          backgroundColor: alpha('#00C853', 0.15),
+                          color: '#00C853',
+                          fontWeight: 600,
+                          '& .MuiChip-icon': { color: '#00C853' },
+                        }}
+                      />
+                      {analysisResult.servingSize && (
+                        <Chip
+                          icon={<Restaurant sx={{ fontSize: 14 }} />}
+                          label={analysisResult.servingSize}
+                          size="small"
+                          sx={{
+                            backgroundColor: isDark ? alpha('#fff', 0.1) : '#f0f0f0',
+                            color: isDark ? 'rgba(255,255,255,0.8)' : '#555',
+                            fontWeight: 500,
+                          }}
+                        />
+                      )}
+                      {analysisResult.foodCategory && (
+                        <Chip
+                          icon={<Category sx={{ fontSize: 14 }} />}
+                          label={analysisResult.foodCategory}
+                          size="small"
+                          sx={{
+                            backgroundColor: alpha('#2196F3', 0.15),
+                            color: '#2196F3',
+                            fontWeight: 500,
+                            '& .MuiChip-icon': { color: '#2196F3' },
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                  
+                  {/* Health Score Badge */}
+                  {analysisResult.healthScore && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        p: 1.5,
+                        borderRadius: 3,
+                        background: analysisResult.isHealthy 
+                          ? 'linear-gradient(135deg, #00C853 0%, #00E676 100%)'
+                          : 'linear-gradient(135deg, #FF9800 0%, #FFB74D 100%)',
+                        minWidth: 70,
+                      }}
+                    >
+                      <Favorite sx={{ color: 'white', fontSize: 20, mb: 0.5 }} />
+                      <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 18, lineHeight: 1 }}>
+                        {analysisResult.healthScore}/10
+                      </Typography>
+                      <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontSize: 10, fontWeight: 500 }}>
+                        Health Score
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
-                {analysisResult.servingSize && (
-                  <Chip
-                    label={analysisResult.servingSize}
-                    size="small"
-                    icon={<Restaurant sx={{ fontSize: 14 }} />}
-                    sx={{
-                      mt: 1,
-                      backgroundColor: isDark ? alpha('#fff', 0.1) : '#f0f0f0',
-                      color: isDark ? 'rgba(255,255,255,0.8)' : '#555',
-                      fontWeight: 500,
-                    }}
-                  />
-                )}
               </Box>
 
-              {/* Calories - Big display */}
+              {/* Calories Hero Card */}
               <Paper
                 elevation={0}
                 sx={{
-                  p: 3,
-                  mb: 3,
+                  p: isMobile ? 2 : 3,
+                  mb: 2,
                   borderRadius: 4,
                   background: isDark 
                     ? 'linear-gradient(135deg, #D32F2F 0%, #F57C00 100%)'
@@ -812,8 +930,8 @@ const FoodScanner = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box
                       sx={{
-                        width: 56,
-                        height: 56,
+                        width: isMobile ? 48 : 56,
+                        height: isMobile ? 48 : 56,
                         borderRadius: 3,
                         backgroundColor: 'rgba(255,255,255,0.25)',
                         display: 'flex',
@@ -821,134 +939,318 @@ const FoodScanner = () => {
                         justifyContent: 'center',
                       }}
                     >
-                      <LocalFireDepartment sx={{ color: 'white', fontSize: 32 }} />
+                      <LocalFireDepartment sx={{ color: 'white', fontSize: isMobile ? 26 : 32 }} />
                     </Box>
                     <Box>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: 500 }}>
+                      <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: isMobile ? 12 : 14, fontWeight: 500 }}>
                         Total Calories
                       </Typography>
                       <Typography
-                        variant="h3"
+                        variant={isMobile ? 'h4' : 'h3'}
                         sx={{ color: 'white', fontWeight: 700, lineHeight: 1 }}
                       >
                         {analysisResult.calories}
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 24, fontWeight: 500 }}>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: isMobile ? 18 : 24, fontWeight: 500 }}>
                     kcal
                   </Typography>
                 </Box>
               </Paper>
 
-              {/* Macronutrients with Circular Progress */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 3,
-                  mb: 3,
-                  borderRadius: 4,
-                  backgroundColor: isDark ? alpha('#fff', 0.05) : '#f8f9fa',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e8e8e8'}`,
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ 
-                    color: isDark ? 'rgba(255,255,255,0.5)' : '#888', 
-                    mb: 3, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: 1, 
-                    fontSize: 12,
-                    textAlign: 'center',
+              {/* Macronutrients Grid - Responsive */}
+              <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                {/* Protein */}
+                <Grid item xs={6} sm={3}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      background: isDark ? alpha('#2196F3', 0.15) : alpha('#2196F3', 0.1),
+                      border: `1px solid ${alpha('#2196F3', 0.2)}`,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <FitnessCenter sx={{ color: '#2196F3', fontSize: 24, mb: 0.5 }} />
+                    <Typography sx={{ color: isDark ? 'white' : '#333', fontWeight: 700, fontSize: 20 }}>
+                      {analysisResult.protein}g
+                    </Typography>
+                    <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#666', fontSize: 12, fontWeight: 500 }}>
+                      Protein
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={Math.min((analysisResult.protein / 50) * 100, 100)}
+                      sx={{
+                        mt: 1,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: alpha('#2196F3', 0.2),
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: '#2196F3',
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Paper>
+                </Grid>
+                
+                {/* Carbs */}
+                <Grid item xs={6} sm={3}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      background: isDark ? alpha('#FF9800', 0.15) : alpha('#FF9800', 0.1),
+                      border: `1px solid ${alpha('#FF9800', 0.2)}`,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <Grain sx={{ color: '#FF9800', fontSize: 24, mb: 0.5 }} />
+                    <Typography sx={{ color: isDark ? 'white' : '#333', fontWeight: 700, fontSize: 20 }}>
+                      {analysisResult.carbs}g
+                    </Typography>
+                    <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#666', fontSize: 12, fontWeight: 500 }}>
+                      Carbs
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={Math.min((analysisResult.carbs / 100) * 100, 100)}
+                      sx={{
+                        mt: 1,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: alpha('#FF9800', 0.2),
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: '#FF9800',
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Paper>
+                </Grid>
+                
+                {/* Fat */}
+                <Grid item xs={6} sm={3}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      background: isDark ? alpha('#9C27B0', 0.15) : alpha('#9C27B0', 0.1),
+                      border: `1px solid ${alpha('#9C27B0', 0.2)}`,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <Opacity sx={{ color: '#9C27B0', fontSize: 24, mb: 0.5 }} />
+                    <Typography sx={{ color: isDark ? 'white' : '#333', fontWeight: 700, fontSize: 20 }}>
+                      {analysisResult.fat}g
+                    </Typography>
+                    <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#666', fontSize: 12, fontWeight: 500 }}>
+                      Fat
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={Math.min((analysisResult.fat / 50) * 100, 100)}
+                      sx={{
+                        mt: 1,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: alpha('#9C27B0', 0.2),
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: '#9C27B0',
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Paper>
+                </Grid>
+                
+                {/* Fiber */}
+                <Grid item xs={6} sm={3}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      background: isDark ? alpha('#4CAF50', 0.15) : alpha('#4CAF50', 0.1),
+                      border: `1px solid ${alpha('#4CAF50', 0.2)}`,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <Grain sx={{ color: '#4CAF50', fontSize: 24, mb: 0.5 }} />
+                    <Typography sx={{ color: isDark ? 'white' : '#333', fontWeight: 700, fontSize: 20 }}>
+                      {analysisResult.fiber || 0}g
+                    </Typography>
+                    <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#666', fontSize: 12, fontWeight: 500 }}>
+                      Fiber
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={Math.min(((analysisResult.fiber || 0) / 25) * 100, 100)}
+                      sx={{
+                        mt: 1,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: alpha('#4CAF50', 0.2),
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: '#4CAF50',
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* Additional Nutrients - Sugar & Sodium */}
+              {(analysisResult.sugar > 0 || analysisResult.sodium > 0) && (
+                <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                  {analysisResult.sugar > 0 && (
+                    <Grid item xs={6}>
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2,
+                          borderRadius: 3,
+                          background: isDark ? alpha('#E91E63', 0.1) : alpha('#E91E63', 0.08),
+                          border: `1px solid ${alpha('#E91E63', 0.15)}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                        }}
+                      >
+                        <WaterDrop sx={{ color: '#E91E63', fontSize: 28 }} />
+                        <Box>
+                          <Typography sx={{ color: isDark ? 'white' : '#333', fontWeight: 700, fontSize: 18 }}>
+                            {analysisResult.sugar}g
+                          </Typography>
+                          <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#666', fontSize: 12 }}>
+                            Sugar
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  )}
+                  {analysisResult.sodium > 0 && (
+                    <Grid item xs={6}>
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2,
+                          borderRadius: 3,
+                          background: isDark ? alpha('#607D8B', 0.1) : alpha('#607D8B', 0.08),
+                          border: `1px solid ${alpha('#607D8B', 0.15)}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                        }}
+                      >
+                        <Science sx={{ color: '#607D8B', fontSize: 28 }} />
+                        <Box>
+                          <Typography sx={{ color: isDark ? 'white' : '#333', fontWeight: 700, fontSize: 18 }}>
+                            {analysisResult.sodium}mg
+                          </Typography>
+                          <Typography sx={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#666', fontSize: 12 }}>
+                            Sodium
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {/* Ingredients Section */}
+              {analysisResult.ingredients && analysisResult.ingredients.length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    mb: 2,
+                    borderRadius: 3,
+                    backgroundColor: isDark ? alpha('#fff', 0.05) : '#f8f9fa',
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e8e8e8'}`,
                   }}
                 >
-                  Macronutrients
-                </Typography>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-around', gap: 2 }}>
-                  <CircularMacro
-                    label="Protein"
-                    value={analysisResult.protein}
-                    max={50}
-                    color="#2196F3"
-                    icon={<FitnessCenter sx={{ color: '#2196F3', fontSize: 24 }} />}
-                  />
-                  <CircularMacro
-                    label="Carbs"
-                    value={analysisResult.carbs}
-                    max={100}
-                    color="#FF9800"
-                    icon={<Grain sx={{ color: '#FF9800', fontSize: 24 }} />}
-                  />
-                  <CircularMacro
-                    label="Fat"
-                    value={analysisResult.fat}
-                    max={50}
-                    color="#9C27B0"
-                    icon={<Opacity sx={{ color: '#9C27B0', fontSize: 24 }} />}
-                  />
-                </Box>
-
-                {analysisResult.fiber && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                    <CircularMacro
-                      label="Fiber"
-                      value={analysisResult.fiber}
-                      max={30}
-                      color="#4CAF50"
-                      icon={<Grain sx={{ color: '#4CAF50', fontSize: 24 }} />}
-                    />
+                  <Typography
+                    sx={{ 
+                      color: isDark ? 'rgba(255,255,255,0.5)' : '#888', 
+                      mb: 1.5, 
+                      textTransform: 'uppercase', 
+                      letterSpacing: 1, 
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Detected Ingredients
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {analysisResult.ingredients.map((ingredient, idx) => (
+                      <Chip
+                        key={`ingredient-${idx}`}
+                        label={ingredient}
+                        size="small"
+                        sx={{
+                          backgroundColor: isDark ? alpha('#fff', 0.1) : '#e8e8e8',
+                          color: isDark ? 'rgba(255,255,255,0.9)' : '#444',
+                          fontSize: 12,
+                          fontWeight: 500,
+                        }}
+                      />
+                    ))}
                   </Box>
-                )}
-              </Paper>
+                </Paper>
+              )}
 
-              {/* Suggestions */}
+              {/* AI Suggestions/Insights */}
               {analysisResult.suggestions && analysisResult.suggestions.length > 0 && (
                 <Paper
                   elevation={0}
                   sx={{
-                    p: 3,
-                    mb: 3,
-                    borderRadius: 4,
+                    p: 2,
+                    mb: 2,
+                    borderRadius: 3,
                     background: isDark 
-                      ? alpha('#4CAF50', 0.15)
+                      ? alpha('#4CAF50', 0.12)
                       : 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
-                    border: `1px solid ${isDark ? alpha('#4CAF50', 0.3) : '#A5D6A7'}`,
+                    border: `1px solid ${isDark ? alpha('#4CAF50', 0.25) : '#A5D6A7'}`,
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <TipsAndUpdates sx={{ color: '#2E7D32', fontSize: 20 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <TipsAndUpdates sx={{ color: '#2E7D32', fontSize: 18 }} />
                     <Typography
-                      variant="subtitle2"
-                      sx={{ color: '#2E7D32', textTransform: 'uppercase', letterSpacing: 1, fontSize: 12, fontWeight: 600 }}
+                      sx={{ color: '#2E7D32', textTransform: 'uppercase', letterSpacing: 1, fontSize: 11, fontWeight: 600 }}
                     >
-                      AI Insights
+                      AI Health Insights
                     </Typography>
                   </Box>
-                  <Stack spacing={1.5}>
+                  <Stack spacing={1}>
                     {analysisResult.suggestions.map((suggestion, index) => (
                       <Box
-                        key={index}
+                        key={`suggestion-${index}`}
                         sx={{
                           display: 'flex',
                           alignItems: 'flex-start',
-                          gap: 1.5,
+                          gap: 1,
                         }}
                       >
                         <Box
                           sx={{
-                            width: 6,
-                            height: 6,
+                            width: 5,
+                            height: 5,
                             borderRadius: '50%',
                             backgroundColor: '#2E7D32',
-                            mt: 1,
+                            mt: 0.8,
                             flexShrink: 0,
                           }}
                         />
                         <Typography
                           variant="body2"
-                          sx={{ color: isDark ? '#81C784' : '#1B5E20', fontWeight: 500 }}
+                          sx={{ color: isDark ? '#81C784' : '#1B5E20', fontWeight: 500, fontSize: 13 }}
                         >
                           {suggestion}
                         </Typography>
@@ -958,8 +1260,90 @@ const FoodScanner = () => {
                 </Paper>
               )}
 
-              {/* Action buttons */}
-              <Stack spacing={2} sx={{ mt: 'auto', pt: 2 }}>
+              {/* Re-analyze Section */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  borderRadius: 3,
+                  backgroundColor: isDark ? alpha('#fff', 0.05) : '#f8f9fa',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                }}
+              >
+                <Typography
+                  sx={{ 
+                    color: isDark ? 'rgba(255,255,255,0.7)' : '#666',
+                    mb: 1.5,
+                    fontWeight: 500,
+                    fontSize: 13,
+                  }}
+                >
+                  Not accurate? Re-analyze with a hint
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    placeholder="e.g., 'This is biryani' or 'smaller portion'"
+                    value={reanalyzeHint}
+                    onChange={(e) => setReanalyzeHint(e.target.value)}
+                    fullWidth
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff',
+                        fontSize: 13,
+                        '& fieldset': {
+                          borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#ddd',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#bbb',
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        color: isDark ? 'white' : '#333',
+                      },
+                      '& .MuiInputBase-input::placeholder': {
+                        color: isDark ? 'rgba(255,255,255,0.4)' : '#999',
+                        opacity: 1,
+                      },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <Edit sx={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#999', fontSize: 16, mr: 1 }} />
+                      ),
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleReanalyze}
+                    disabled={isAnalyzing}
+                    sx={{
+                      minWidth: 'auto',
+                      px: 2,
+                      borderRadius: 2,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : '#e0e0e0',
+                      color: isDark ? 'white' : '#333',
+                      '&:hover': {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.25)' : '#d0d0d0',
+                      },
+                    }}
+                  >
+                    <Refresh sx={{ fontSize: 18 }} />
+                  </Button>
+                </Box>
+              </Paper>
+
+              {/* Action Buttons - Sticky at Bottom */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  flexDirection: isMobile ? 'column' : 'row',
+                  mt: 2,
+                  pb: 2,
+                }}
+              >
                 <Button
                   variant="contained"
                   size="large"
@@ -971,7 +1355,7 @@ const FoodScanner = () => {
                     borderRadius: 3,
                     background: 'linear-gradient(135deg, #00C853, #00E676)',
                     fontWeight: 600,
-                    fontSize: '1rem',
+                    fontSize: isMobile ? '0.9rem' : '1rem',
                     boxShadow: '0 6px 24px rgba(0,200,83,0.35)',
                     '&:hover': {
                       background: 'linear-gradient(135deg, #00BFA5, #00C853)',
@@ -979,7 +1363,7 @@ const FoodScanner = () => {
                     },
                   }}
                 >
-                  Add to Today's Meals
+                  Add to Meal
                 </Button>
 
                 <Button
@@ -987,15 +1371,17 @@ const FoodScanner = () => {
                   size="large"
                   startIcon={<CameraAlt />}
                   onClick={resetScanner}
-                  fullWidth
+                  fullWidth={isMobile}
                   sx={{
                     py: 1.5,
+                    px: 3,
                     borderRadius: 3,
                     borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#ddd',
                     borderWidth: 2,
                     color: isDark ? 'rgba(255,255,255,0.8)' : '#555',
                     fontWeight: 600,
-                    fontSize: '1rem',
+                    fontSize: isMobile ? '0.9rem' : '1rem',
+                    minWidth: isMobile ? 'auto' : 160,
                     '&:hover': {
                       borderColor: isDark ? 'rgba(255,255,255,0.5)' : '#bbb',
                       borderWidth: 2,
@@ -1005,11 +1391,126 @@ const FoodScanner = () => {
                 >
                   Scan Another
                 </Button>
-              </Stack>
+              </Box>
             </Box>
-          </motion.div>
+          </Box>
         )}
       </AnimatePresence>
+
+      {/* Meal Type Selection Dialog */}
+      <Dialog
+        open={mealTypeDialog}
+        onClose={() => setMealTypeDialog(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            minWidth: 320,
+            background: isDark 
+              ? 'linear-gradient(180deg, #1e1e2e 0%, #12121a 100%)'
+              : 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            textAlign: 'center',
+            color: isDark ? 'white' : '#333',
+            fontWeight: 700,
+            pb: 1,
+          }}
+        >
+          Add to which meal?
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{ 
+              textAlign: 'center', 
+              color: isDark ? 'rgba(255,255,255,0.6)' : '#666',
+              mb: 2,
+            }}
+          >
+            {analysisResult?.name} • {analysisResult?.calories} cal
+          </Typography>
+          <List sx={{ pt: 0 }}>
+            {mealTypes.map((meal) => (
+              <ListItem key={meal.type} disablePadding sx={{ mb: 1 }}>
+                <ListItemButton
+                  onClick={() => handleMealTypeSelect(meal.type)}
+                  sx={{
+                    borderRadius: 3,
+                    py: 1.5,
+                    px: 2,
+                    backgroundColor: isDark ? alpha(meal.color, 0.15) : alpha(meal.color, 0.1),
+                    border: `1px solid ${alpha(meal.color, 0.3)}`,
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: isDark ? alpha(meal.color, 0.25) : alpha(meal.color, 0.2),
+                      transform: 'scale(1.02)',
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 44 }}>
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 2,
+                        backgroundColor: alpha(meal.color, 0.2),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: meal.color,
+                      }}
+                    >
+                      {meal.icon}
+                    </Box>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={meal.label}
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                      color: isDark ? 'white' : '#333',
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setMealTypeDialog(false)}
+            sx={{
+              color: isDark ? 'rgba(255,255,255,0.6)' : '#666',
+              fontWeight: 500,
+            }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ 
+            width: '100%',
+            borderRadius: 3,
+            fontWeight: 600,
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

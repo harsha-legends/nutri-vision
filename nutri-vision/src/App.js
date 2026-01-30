@@ -22,6 +22,7 @@ import BarcodeScanner from './pages/BarcodeScanner/BarcodeScanner';
 import MealPlanner from './pages/MealPlanner/MealPlanner';
 import NotificationSettings from './pages/Notifications/NotificationSettings';
 import ProgressPhotos from './pages/ProgressPhotos/ProgressPhotos';
+import ScanHistory from './pages/ScanHistory/ScanHistory';
 import './App.css';
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
                 <Route path="meal-planner" element={<MealPlanner />} />
                 <Route path="notifications" element={<NotificationSettings />} />
                 <Route path="progress-photos" element={<ProgressPhotos />} />
+                <Route path="scan-history" element={<ScanHistory />} />
               </Route>
 
               {/* Fallback */}
